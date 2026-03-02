@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('reservas', function (Blueprint $table) {
+        Schema::create('hoteles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('habitacione_id')->constrained('habitaciones');
+            $table->string('nombre_hotel');
             $table->foreignId('user_id')->constrained('users');
-            $table->foreignId('oferta_id')->nullable()->constrained('ofertas');
-            $table->date('fecha_entrada');
-            $table->date('fecha_salida');
-            $table->decimal('precio_total',8,2);
+            $table->text('descripcion');
+            $table->string('direccion');
+            $table->string('ciudad');
+            $table->decimal('latitud',10,8);
+            $table->decimal('longitud',11,8);
+            $table->string('logo');
             $table->timestamps();
         });
     }
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('reservas');
+        Schema::dropIfExists('hoteles');
     }
 };
