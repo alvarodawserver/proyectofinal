@@ -15,7 +15,9 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-Route::put('');
+Route::get('/home', function(){
+    return Inertia::render('home');
+});
 
 
 
