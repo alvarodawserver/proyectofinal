@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('habitaciones', function (Blueprint $table) {
+        Schema::create('images', function (Blueprint $table) {
             $table->id();
-            $table->integer('num_habitacion');
-            $table->foreignId('tipo_habitacion')->constrained('tipos');
-            $table->foreignId('hotele_id')->constrained('hoteles');
+            $table->string('path'); // Aquí se guarda "hoteles/foto1.jpg"
+            $table->foreignId('hotele_id')->constrained('hoteles')->onDelete('cascade');
+            $table->boolean('is_primary')->default(false); // Para saber cuál es la foto de portada
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('habitaciones');
+        Schema::dropIfExists('images');
     }
 };

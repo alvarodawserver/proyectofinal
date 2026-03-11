@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('habitacione_id')->constrained('habitaciones');
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('oferta_id')->nullable()->constrained('ofertas');
+            $table->string('estado');
             $table->date('fecha_entrada');
             $table->date('fecha_salida');
             $table->decimal('precio_total',8,2);

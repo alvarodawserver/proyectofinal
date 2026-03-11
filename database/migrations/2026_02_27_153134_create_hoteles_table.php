@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('hoteles', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_hotel');
-            $table->foreignId('user_id')->constrained('users');
+            $table->foreignId('propietario_id')->constrained('users');
             $table->text('descripcion');
             $table->string('direccion');
             $table->string('ciudad');
+            $table->string('categoria');
             $table->decimal('latitud',10,8);
             $table->decimal('longitud',11,8);
-            $table->string('logo');
             $table->timestamps();
         });
     }

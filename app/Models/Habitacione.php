@@ -10,4 +10,8 @@ class Habitacione extends Model
     public function reservas(){
         return $this->hasMany(Reserva::class);
     }
+
+    public function tipo(){
+        return $this->belongsTo(Tipo::class);
+    }
 }
