@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Hotele;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class HoteleController extends Controller
 {
@@ -36,8 +37,26 @@ class HoteleController extends Controller
      */
     public function show(Hotele $hotele)
     {
-        //
+        $hotel = Hotele::with(['images', 'servicios', 'habitaciones.tipo'])->findOrFail($hotele->id);
+        $avg_rating = round($hotel->reviews()->avg('valoracion'), 1) ?? 0;
+        $num_reviews = $hotel->reviews()->count();
+
+        return Inertia::render('Hoteles/show',[
+            'hotel' => $hotel,
+            'rating' => [
+                'average' => $avg_rating,
+                'count' => $num_reviews,
+                'description' => $this->getRatingDescription($avg_rating),
+            ],
+            'images' => $hotel->images->map(fn($img) => asset('storage/' . $img->path)),
+            'servicios' => $hotel->servicios->map(fn($srv) => [
+                'id' => $srv->id,
+                'nombre' => $srv->nombre_servicio,
+                'icono' => $srv->icono, 
+            ])
+        ]);
     }
+
 
     /**
      * Show the form for editing the specified resource.
@@ -61,5 +80,14 @@ class HoteleController extends Controller
     public function destroy(Hotele $hotele)
     {
         //
+    }
+
+    private function getRatingDescription($rating)
+    {
+        if ($rating >= 9) return 'Excelente';
+        if ($rating >= 8) return 'Fabuloso';
+        if ($rating >= 7) return 'Muy bueno';
+        if ($rating >= 6) return 'Bueno';
+        return 'Recomendado';
     }
 }

@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\HoteleController;
+use App\Http\Controllers\MainController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -15,9 +18,10 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
-Route::get('/home', function(){
-    return Inertia::render('home');
-});
+Route::get('/', [MainController::class, 'index'])->name('home');
+
+Route::resource('hoteles',HoteleController::class);
+Route::get('/busqueda', [SearchController::class, 'busqueda'])->name('busqueda');
 
 
 

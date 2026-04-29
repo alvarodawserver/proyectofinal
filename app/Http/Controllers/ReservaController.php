@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Habitacione;
 use App\Models\Reserva;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class ReservaController extends Controller
 {
@@ -27,9 +30,30 @@ class ReservaController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-    {
-        //
-    }
+{
+        $request->validate([
+            'habitacione_id' => 'required|exists:habitaciones,id',
+            'fecha_entrada' => 'required|date|after_or_equal:today',
+            'fecha_salida' => 'required|date|after:fecha_entrada',
+        ]);
+
+
+        $habitacion = Habitacione::findOrFail($request->habitacione_id);
+        $noches = Carbon::parse($request->fecha_entrada)->diffInDays($request->fecha_salida);
+        $precioTotal = $noches * $habitacion->tipo->precio_base;
+
+
+        Reserva::create([
+            'user_id' => Auth::user()->id,
+            'habitacione_id' => $request->habitacione_id,
+            'fecha_entrada' => $request->fecha_entrada,
+            'fecha_salida' => $request->fecha_salida,
+            'precio_total' => $precioTotal,
+            'estado' => 'confirmada', 
+        ]);
+
+    return redirect()->back()->with('success', '¡Reserva realizada con éxito!');
+}
 
     /**
      * Display the specified resource.
