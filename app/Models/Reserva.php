@@ -16,7 +16,7 @@ class Reserva extends Model
         'fecha_salida',
         'precio_total'
     ];
-    public function habitacione(){
-        return $this->belongsTo(Habitacione::class);
+    public function habitaciones(){
+        return $this->belongsToMany(Habitacione::class);
     }
 }

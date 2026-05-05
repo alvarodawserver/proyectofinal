@@ -2,7 +2,7 @@ import { usePage } from '@inertiajs/react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import HotelCard from '@/components/hotel-card';
-import Button from '@/components/button';
+import { Settings } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import SearchBar from '@/components/search-bar';
 interface Hotele{
@@ -22,6 +22,7 @@ interface Oferta{
   }
   id: number;
   nombre: string;
+  hotel_id: number;
   descuento_porcentaje: number;
   fecha_inicio: string;
   fecha_fin: string;
@@ -40,12 +41,22 @@ interface HomePageProps {
 }
 
 export default function HomePage({ hoteles, ofertas }: HomePageProps) {
+    const { auth } = usePage().props as any;
   return (
         <div style={{ backgroundColor: '#f4f1ea', minHeight: '100vh' }}>
             <Header />
-
+            {auth.user?.can_access_admin && (
+                <Link
+                    href="/dashboard"
+                    className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-3 text-white shadow-2xl transition-transform hover:scale-110 dark:bg-white dark:text-black"
+                >
+                    <Settings size={20} className="animate-spin-slow" />
+                    <span className="text-sm font-bold">Panel Admin</span>
+                </Link>
+            )}
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
                 <SearchBar />
+                
                 {ofertas.length > 0 && (
                     <section style={{ marginBottom: '50px' }}>
                         <h2 style={{ color: '#8B4513', borderBottom: '2px solid #D2B48C', display: 'inline-block' }}>
@@ -59,7 +70,9 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
                                         <p style={{ fontSize: '0.9rem', color: '#666' }}>En {oferta.hotel.nombre_hotel}</p>
                                         <span style={discountBadgeStyle}>-{oferta.descuento_porcentaje}%</span>
                                     </div>
-                                    <button style={ofertaButtonStyle}>Ver chollo</button>
+                                    <Link href={`/hoteles/${oferta.hotel_id}/show?oferta_id=${oferta.id}`} style={ofertaButtonStyle}>
+                                        Ver chollo
+                                    </Link>
                                 </div>
                             ))}
                         </div>
@@ -69,7 +82,7 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
                 <h2 style={{ color: '#008080', marginBottom: '25px', borderBottom: '2px solid #008080', display: 'inline-block'}}>Explora nuestros hoteles</h2>
                 <div style={hotelGridStyle}>
                     {hoteles.map(hotel => (
-                        <Link href={`hoteles/${hotel.id}`}>
+                        <Link href={`/hoteles/${hotel.id}/show`}>
                             <HotelCard 
                                 key={hotel.id}
                                 nombre={hotel.nombre}

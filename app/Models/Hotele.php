@@ -75,6 +75,17 @@ class Hotele extends Model
     }
 
 
+    public function ofertas() {
+    return $this->hasMany(Oferta::class, 'hotel_id');
+    }
 
+
+    public function ofertaActiva() {
+        return $this->ofertas()
+            ->where('activa', true)
+            ->where('fecha_inicio', '<=', now())
+            ->where('fecha_fin', '>=', now())
+            ->first(); 
+    }
 
 }

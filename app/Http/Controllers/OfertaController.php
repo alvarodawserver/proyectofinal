@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Hotele;
 use App\Models\Oferta;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class OfertaController extends Controller
 {
@@ -12,7 +14,10 @@ class OfertaController extends Controller
      */
     public function index()
     {
-        //
+        return Inertia::render('Ofertas/index', [
+            'ofertas' => Oferta::with('hotel')->latest()->get(),
+            'hoteles' => Hotele::select('id', 'nombre_hotel')->get()
+        ]);
     }
 
     /**
@@ -28,7 +33,15 @@ class OfertaController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+        'hotel_id' => 'required|exists:hoteles,id',
+        'nombre' => 'required|string|max:255',
+        'descuento_porcentaje' => 'required|numeric|min:1|max:90',
+        'fecha_inicio' => 'required|date',
+        'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
+        ]);
+        Oferta::create($validated + ['activa' => true]);
+        return back()->with('success', 'Oferta creada correctamente.');
     }
 
     /**
@@ -60,6 +73,13 @@ class OfertaController extends Controller
      */
     public function destroy(Oferta $oferta)
     {
-        //
+        $oferta->delete();
+        return redirect()->back()->with('success', 'Oferta eliminada');
+    }
+
+    public function toggle(Oferta $oferta)
+    {
+        $oferta->update(['activa' => !$oferta->activa]);
+        return redirect()->back();
     }
 }

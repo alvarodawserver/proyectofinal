@@ -7,6 +7,7 @@ use App\Models\Reserva;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ReservaController extends Controller
 {
@@ -30,30 +31,53 @@ class ReservaController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
-{
+    {
+
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Debes iniciar sesión para reservar.');
+        }
+
         $request->validate([
-            'habitacione_id' => 'required|exists:habitaciones,id',
-            'fecha_entrada' => 'required|date|after_or_equal:today',
+            'hotel_id' => 'required|exists:hoteles,id',
+            'fecha_entrada' => 'required|date|after:today',
             'fecha_salida' => 'required|date|after:fecha_entrada',
+            'habitaciones' => 'required|array|min:1',
+            'habitaciones.*' => 'exists:habitaciones,id',
         ]);
 
+        try {
+            return DB::transaction(function () use ($request) {
 
-        $habitacion = Habitacione::findOrFail($request->habitacione_id);
-        $noches = Carbon::parse($request->fecha_entrada)->diffInDays($request->fecha_salida);
-        $precioTotal = $noches * $habitacion->tipo->precio_base;
+                $habitacionesOcupadas = Habitacione::whereIn('id', $request->habitaciones)
+                    ->whereHas('reservas', function ($query) use ($request) {
+                        $query->where('fecha_entrada', '<', $request->fecha_salida)
+                              ->where('fecha_salida', '>', $request->fecha_entrada);
+                    })->exists();
 
+                if ($habitacionesOcupadas) {
+                    return back()->withErrors(['error' => 'Una o más habitaciones ya no están disponibles para esas fechas.']);
+                }
 
-        Reserva::create([
-            'user_id' => Auth::user()->id,
-            'habitacione_id' => $request->habitacione_id,
-            'fecha_entrada' => $request->fecha_entrada,
-            'fecha_salida' => $request->fecha_salida,
-            'precio_total' => $precioTotal,
-            'estado' => 'confirmada', 
-        ]);
+                $reserva = Reserva::create([
+                    'user_id' => Auth::id(),
+                    'hotele_id' => $request->hotel_id,
+                    'fecha_entrada' => $request->fecha_entrada,
+                    'fecha_salida' => $request->fecha_salida,
+                    'adultos' => $request->adultos,
+                    'niños' => $request->niños,
+                    'total_precio' => $request->precio_total,
+                    'estado' => 'confirmada' 
+                ]);
 
-    return redirect()->back()->with('success', '¡Reserva realizada con éxito!');
-}
+                
+                $reserva->habitaciones()->attach($request->habitaciones);
+
+                return redirect()->route('mis-reservas')->with('success', '¡Reserva realizada con éxito!');
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Hubo un error al procesar la reserva. Inténtalo de nuevo.']);
+        }
+    }
 
     /**
      * Display the specified resource.

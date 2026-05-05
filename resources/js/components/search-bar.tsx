@@ -1,7 +1,8 @@
 // resources/js/Components/SearchBar.tsx
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router, usePage, Link } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Building2 } from 'lucide-react'; // Añadimos iconos para las sugerencias
+import axios from 'axios';
 
 export default function SearchBar() {
     const { url } = usePage();
@@ -9,16 +10,61 @@ export default function SearchBar() {
     const [dates, setDates] = useState({ checkIn: '', checkOut: '' });
     const [people, setPeople] = useState({ adults: 1, children: 0 });
 
-    const totalPeople = people.adults + people.children;
+
+    const [suggestions, setSuggestions] = useState([]);
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    
+    useEffect(() => {
+        if (destination.length > 0) {
+            const delayDebounceFn = setTimeout(() => {
+                axios.get(`/api/sugerencias?q=${destination}`)
+                    .then(res => {
+                        setSuggestions(res.data);
+                        setIsOpen(true);
+                    })
+                    .catch(() => setSuggestions([]));
+            }, 300);
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            setSuggestions([]);
+            setIsOpen(false);
+        }
+    }, [destination]);
 
     const handleSearch = () => {
         router.get('/busqueda', {
             lugar: destination,
             entrada: dates.checkIn,
             salida: dates.checkOut,
-            personas: totalPeople
+            personas: people.adults + people.children
         });
+        setIsOpen(false);
     };
+
+   
+    const selectSuggestion = (label: string) => {
+    setDestination(label);
+    setIsOpen(false);
+
+    router.get('/busqueda', {
+        lugar: label, // Enviamos el "Sevilla - Oasis..."
+        entrada: dates.checkIn,
+        salida: dates.checkOut,
+        personas: people.adults + people.children
+    });
+};
 
     const isActive = (path: string) => url === path || (path === '/' && url === '');
 
@@ -26,32 +72,49 @@ export default function SearchBar() {
         <div style={searchBarAreaStyle}>
             <div style={{ maxWidth: '1000px', margin: '0 auto', width: '90%' }}>
                 
-
                 <div style={{ display: 'flex', gap: '5px' }}>
                     <Link href="/" style={getTabStyle(isActive('/'))}>🏨 Hoteles</Link>
                     <Link href="/vehiculos" style={getTabStyle(isActive('/vehiculos'))}>🚗 Vehículos</Link>
                     <Link href="/actividades" style={getTabStyle(isActive('/actividades'))}>⛰️ Actividades</Link>
                 </div>
 
-
                 <div style={searchBarWrapper}>
                     
-
-                    <div style={{ ...inputGroup, width: '100%', marginBottom: '10px' }}>
+                    {/* INPUT DE LUGAR CON SUGERENCIAS */}
+                    <div ref={wrapperRef} style={{ ...inputGroup, width: '100%', marginBottom: '10px', position: 'relative' }}>
                         <label style={labelStyle}>Lugar</label>
                         <input 
                             style={inputStyle} 
                             type="text" 
                             placeholder="¿A dónde vas?" 
                             value={destination} 
-                            onChange={e => setDestination(e.target.value)} 
+                            onChange={e => setDestination(e.target.value)}
+                            onFocus={() => destination.length > 0 && setIsOpen(true)}
                         />
+
+                        {/* PANEL DE SUGERENCIAS (Estilo YouTube) */}
+                        {isOpen && suggestions.length > 0 && (
+                            <div style={suggestionsPanelStyle}>
+                                {suggestions.map((item: any, index) => (
+                                    <div 
+                                        key={index} 
+                                        style={suggestionItemStyle}
+                                        onClick={() => selectSuggestion(item.label)}
+                                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f4f1ea')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                                    >
+                                        <MapPin size={18} color="#008080" />
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: '600', color: '#333' }}>{item.label}</span>
+                                            <span style={{ fontSize: '0.75rem', color: '#888' }}>{item.ciudad}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-
                     <div style={secondRowStyle}>
-                        
-
                         <div style={{ ...inputGroup, flex: 2 }}>
                             <label style={labelStyle}>Fechas (Entrada - Salida)</label>
                             <div style={{ display: 'flex', gap: '10px' }}>
@@ -59,7 +122,6 @@ export default function SearchBar() {
                                 <input style={inputStyle} type="date" onChange={e => setDates({ ...dates, checkOut: e.target.value })} />
                             </div>
                         </div>
-
 
                         <div style={{ ...inputGroup, flex: 1.5 }}>
                             <div style={peopleSelectorStyle}>
@@ -86,7 +148,6 @@ export default function SearchBar() {
                             </div>
                         </div>
 
-    
                         <button onClick={handleSearch} style={searchButtonStyle}>
                             <Search size={22} /> <strong>BUSCAR</strong>
                         </button>
@@ -97,7 +158,30 @@ export default function SearchBar() {
     );
 }
 
-// --- ESTILOS ACTUALIZADOS ---
+
+const suggestionsPanelStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    marginTop: '8px',
+    boxShadow: '0 15px 35px rgba(0,0,0,0.15)',
+    border: '1px solid #e0e0e0',
+    zIndex: 1000,
+    overflow: 'hidden',
+    padding: '8px 0'
+};
+
+const suggestionItemStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 20px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+};
 
 const searchBarAreaStyle = { 
     backgroundColor: '#D2B48C', 

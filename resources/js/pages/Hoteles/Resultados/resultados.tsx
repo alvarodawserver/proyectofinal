@@ -1,22 +1,62 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react'; 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import HotelCard from '@/components/hotel-card';
 import SearchBar from '@/components/search-bar';
 import { Hotel, SearchFilters, Categoria } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
 
 interface Props {
     hoteles: Hotel[];
-    filtros: SearchFilters;
+    filtros: any; 
     categorias: Categoria[];
 }
 
 export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
+
+
+    const handleFilterChange = (key: string, value: any) => {
+        const newFilters = { ...filtros, [key]: value };
+        
+        
+        Object.keys(newFilters).forEach(k => (newFilters[k] == null || newFilters[k] === '') && delete newFilters[k]);
+
+        router.get('/busqueda', newFilters, {
+            preserveState: true, 
+            replace: true,        
+        });
+    };
+
+    const [localPrecioMax, setLocalPrecioMax] = useState(filtros.precio_max || 1000);
+
+    const updateQuery = (key: string, value: any) => {
+        const newFilters = { ...filtros, [key]: value };
+        
+        router.get('/busqueda', newFilters, {
+            preserveState: true, 
+            preserveScroll: true, 
+            replace: true,        
+            only: ['hoteles', 'filtros'], 
+        });
+    };
+
+    useEffect(() => {
+        if (localPrecioMax !== filtros.precio_max) {
+            const timeoutId = setTimeout(() => {
+                updateQuery('precio_max', localPrecioMax);
+            }, 400);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [localPrecioMax]);
+
+
     return (
         <div style={pageContainerStyle}>
             <Header />
             
-            <SearchBar />
+            <div style={{ padding: '20px 0' }}>
+                <SearchBar />
+            </div>
 
             <main style={mainLayout}>
                 <aside style={sidebarStyle}>
@@ -26,19 +66,42 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                         <h4 style={subHeadingStyle}>Categorías</h4>
                         {categorias?.map(cat => (
                             <label key={cat.id} style={checkboxStyle}>
-                                <input type="checkbox" style={{ marginRight: '10px' }} /> {cat.nombre}
+                                <input 
+                                    type="checkbox" 
+                                    style={{ marginRight: '10px' }} 
+                                    // Comprobamos si está seleccionada en los filtros
+                                    checked={filtros.categoria_id == cat.id}
+                                    onChange={(e) => handleFilterChange('categoria_id', e.target.checked ? cat.id : '')}
+                                /> 
+                                {cat.nombre || (cat as any).nombre}
                             </label>
                         ))}
                     </div>
 
                     <div style={filterGroupStyle}>
-                        <h4 style={subHeadingStyle}>Precio por noche</h4>
-                        <input type="range" min="80" max="700" style={{ width: '100%', marginTop: '10px' }} />
+                        <h4 style={subHeadingStyle}>Precio máximo: {filtros.precio_max ? `${filtros.precio_max}€` : 'Sin límite'}</h4>
+                        <input 
+                            type="range" 
+                            min="50" 
+                            max="1000" 
+                            step="10"
+                            value={filtros.precio_max || 1000}
+                            onChange={(e) => handleFilterChange('precio_max', e.target.value)}
+                            style={{ width: '100%', marginTop: '10px', accentColor: '#008080' }} 
+                        />
                         <div style={rangeLabelsStyle}>
-                            <span>80€</span>
-                            <span>700€</span>
+                            <span>50€</span>
+                            <span>1000€</span>
                         </div>
                     </div>
+
+                    {/* Botón para limpiar filtros */}
+                    <button 
+                        onClick={() => router.get('/busqueda')}
+                        className="text-sm text-teal-600 font-bold hover:underline"
+                    >
+                        Limpiar filtros
+                    </button>
                 </aside>
 
                 {/* RESULTADOS */}
@@ -47,21 +110,27 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                         <h2 style={{ color: '#2C3E50', margin: 0 }}>
                             Hoteles encontrados ({hoteles.length})
                         </h2>
-                        <select name="sort" style={selectSortStyle} defaultValue="">
-                            <option value="" disabled>Ordenar por...</option>
-                            <option value="recomendados">Recomendados</option>
+                        <select 
+                            name="sort" 
+                            style={selectSortStyle} 
+                            value={filtros.order || ""}
+                            onChange={(e) => handleFilterChange('order', e.target.value)}
+                        >
+                            <option value="">Recomendados</option>
                             <option value="precio_asc">Precio: Menor a mayor</option>
+                            <option value="precio_desc">Precio: Mayor a menor</option>
+
                         </select>
                     </div>
 
                     <div style={resultsGridStyle}>
                         {hoteles.map(hotel => (
-                            <Link href={`/hoteles/${hotel.id}`} key={hotel.id} style={{ textDecoration: 'none' }}>
+                            <Link href={`/hoteles/${hotel.id}/show`} key={hotel.id} style={{ textDecoration: 'none' }}>
                                 <HotelCard 
                                     nombre={hotel.nombre_hotel}
                                     ciudad={hotel.ciudad}
-                                    categoria={hotel.categoria}
-                                    imagen={hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
+                                    categoria={hotel.categoria || "Hotel"}
+                                    imagen={hotel.images && hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
                                     precio_minimo={hotel.precio_min || 0}
                                     rating={hotel.rating || 0}
                                 />

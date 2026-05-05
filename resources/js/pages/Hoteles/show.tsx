@@ -19,11 +19,26 @@ interface Props {
     rating: { average: number; count: number; description: string };
     images: string[];
     servicios: Servicio[];
+    // NUEVO: Añadimos la oferta aplicada
+    oferta_aplicada?: {
+        id: number;
+        nombre: string;
+        descuento_porcentaje: number;
+    } | null;
 }
 
-export default function Show({ hotel, rating, images, servicios }: Props) {
+export default function Show({ hotel, rating, images, servicios, oferta_aplicada }: Props) { // <-- Recibimos la prop
 
     const [activeTab, setActiveTab] = useState('general');
+
+    // Mover la lógica de cálculo aquí si la necesitas, 
+    // aunque lo ideal es que PricingSection la use internamente
+    const calcularPrecio = (precioBase: number) => {
+        if (oferta_aplicada) {
+            return (precioBase * (1 - oferta_aplicada.descuento_porcentaje / 100)).toFixed(2);
+        }
+        return precioBase;
+    };
     
     const getTabStyle = (tab: string) => ({
         padding: '10px 20px',
@@ -40,6 +55,19 @@ export default function Show({ hotel, rating, images, servicios }: Props) {
             <Header />
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
 
+                {/* NUEVO: Banner de Oferta (Solo si existe oferta_aplicada) */}
+                {oferta_aplicada && (
+                    <div style={offerAlertStyle}>
+                        <div style={{ fontSize: '1.2rem' }}>🎉</div>
+                        <div>
+                            <strong style={{ display: 'block' }}>¡Oferta Especial Aplicada: {oferta_aplicada.nombre}!</strong>
+                            <span style={{ fontSize: '0.9rem' }}>
+                                Se ha aplicado un <strong>{oferta_aplicada.descuento_porcentaje}% de descuento</strong> a todos los precios de este hotel.
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 <div style={tabsBarStyle}>
                     <button onClick={() => setActiveTab('general')} style={getTabStyle('general')}>Vista general</button>
                     <button onClick={() => setActiveTab('precios')} style={getTabStyle('precios')}>Precios</button>
@@ -52,13 +80,11 @@ export default function Show({ hotel, rating, images, servicios }: Props) {
                         <p>📍 {hotel.direccion}, {hotel.ciudad}</p>
                     </div>
                     <Button
-                     style={reservaButtonStyle} 
-                     onClick={() => setActiveTab('precios') }>
+                        style={reservaButtonStyle} 
+                        onClick={() => setActiveTab('precios') }>
                         Reservar Ahora
                     </Button>
-
                 </div>
-
 
                 {activeTab === 'general' && (
                     <GeneralSection hotel={hotel} images={images} rating={rating} />
@@ -69,16 +95,29 @@ export default function Show({ hotel, rating, images, servicios }: Props) {
                 )}
 
                 {activeTab === 'precios' && (
-                    <PricingSection hotel={hotel} />
+ 
+                    <PricingSection hotel={hotel} oferta_aplicada={oferta_aplicada} />
                 )}
 
             </main>
             <Footer />
         </div>
     );
-
-    
 }
+
+
+const offerAlertStyle = {
+    backgroundColor: '#fff5f5',
+    border: '1px solid #feb2b2',
+    color: '#c53030',
+    padding: '15px 20px',
+    borderRadius: '12px',
+    marginBottom: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+};
 
 
 
