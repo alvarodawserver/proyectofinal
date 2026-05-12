@@ -5,6 +5,7 @@ import HotelCard from '@/components/hotel-card';
 import { Settings } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import SearchBar from '@/components/search-bar';
+
 interface Hotele{
   id: number;
   nombre: string;
@@ -45,18 +46,8 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
   return (
         <div style={{ backgroundColor: '#f4f1ea', minHeight: '100vh' }}>
             <Header />
-            {auth.user?.can_access_admin && (
-                <Link
-                    href="/dashboard"
-                    className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-3 text-white shadow-2xl transition-transform hover:scale-110 dark:bg-white dark:text-black"
-                >
-                    <Settings size={20} className="animate-spin-slow" />
-                    <span className="text-sm font-bold">Panel Admin</span>
-                </Link>
-            )}
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
                 <SearchBar />
-                
                 {ofertas.length > 0 && (
                     <section style={{ marginBottom: '50px' }}>
                         <h2 style={{ color: '#8B4513', borderBottom: '2px solid #D2B48C', display: 'inline-block' }}>

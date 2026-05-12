@@ -33,13 +33,12 @@ class Hotele extends Model
         return $this->belongsToMany(Servicio::class, 'servicio_hotel', 'hotele_id', 'servicio_id')
                     ->withTimestamps(); // Si tu pivote tiene created_at y updated_at
     }
-    public function reviews() 
-    {
-        // Esto es mucho más limpio. Laravel navegará Hotel -> Habitaciones -> Reservas -> Reviews
-        return $this->hasManyThrough(Review::class, Reserva::class, 'habitacione_id', 'reserva_id', 'id', 'id')
-                    ->join('habitaciones', 'reservas.habitacione_id', '=', 'habitaciones.id')
-                    ->where('habitaciones.hotele_id', $this->id);
-    }
+    public function reviews()
+{
+    return  Review::whereHas('reserva.habitaciones', function ($query) {
+        $query->where('hotele_id', $this->id);
+    });
+}
 
 
     public function getRatingAttribute()

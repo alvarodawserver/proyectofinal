@@ -16,6 +16,7 @@ export default function Dashboard() {
         { name: 'Tipos de Habitación', icon: BedDouble, href: '/tipos', color: 'text-amber-700', bg: 'bg-amber-50', desc: 'Precios, fotos y capacidades' },
         { name: 'Actividades', icon: CalendarDays, href: '/actividades', color: 'text-green-600', bg: 'bg-green-50', desc: 'Eventos y tours disponibles' },
         { name: 'Ofertas', icon: CalendarDays, href: '/ofertas', color: 'text-purple-600', bg: 'bg-purple-50', desc: 'Ofertas especiales y promociones' },
+        { name: 'Usuarios', icon: Users, href: '/usuarios', color: 'text-blue-600', bg: 'bg-blue-50', desc: 'Gestionar usuarios y permisos' },
     ];
 
     return (

@@ -19,23 +19,24 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
     const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([]);
+    const today = new Date().toISOString().split('T')[0];
 
-    // --- LÓGICA DE RESERVA ACTUALIZADA ---
+
     const handleReserva = () => {
-        router.post('/reservas', {
-            hotel_id: hotel.id,
-            fecha_entrada: checkIn,
-            fecha_salida: checkOut,
-            adultos: adults,
-            niños: children,
-            habitaciones: selectedRoomIds,
-            precio_total: totals,
-            // NUEVO: Enviamos el ID de la oferta para que el backend la registre
-            oferta_id: oferta_aplicada?.id || null 
-        }, {
-            onBefore: () => confirm('¿Estás seguro de que deseas confirmar esta reserva?'),
-        });
-    };
+    router.post('/reservas', {
+        hotel_id: hotel.id,
+        fecha_entrada: checkIn,
+        fecha_salida: checkOut,
+        adultos: adults,
+        ninos: children, 
+        habitaciones: selectedRoomIds, 
+        oferta_id: oferta_aplicada?.id || null 
+    }, {
+        onSuccess: () => {
+            setSelectedRoomIds([]);
+        }
+    });
+};
 
     const nights = useMemo(() => {
         if (!checkIn || !checkOut) return 0;
@@ -59,7 +60,7 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
         setSelectedRoomIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    // --- CÁLCULO DE TOTALES CON DESCUENTO ---
+
     const { totals, savings } = useMemo(() => {
         const selectedRooms = hotel.habitaciones.filter(h => selectedRoomIds.includes(h.id));
         const priceBase = selectedRooms.reduce((acc, h) => acc + Number(h.tipo.precio_base || 0), 0) * nights;
@@ -82,15 +83,37 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
         <div style={cardStyle}>
             <h3 style={{ fontSize: '1.4rem', marginBottom: '20px', color: '#333' }}>Calcula tu estancia</h3>
             
-            {/* SECCIÓN FECHAS Y PASAJEROS (Igual que antes) */}
+     
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                 <div style={inputContainerStyle}>
                     <label style={miniLabelStyle}>📅 Entrada</label>
-                    <input type="date" style={inputStyle} onChange={(e) => setCheckIn(e.target.value)} />
+                    <input 
+                        type="date" 
+                        min={today}
+                        style={inputStyle} 
+                        value={checkIn}
+                        onChange={(e) => {
+                            setCheckIn(e.target.value);
+                            if (checkOut && e.target.value >= checkOut) {
+                                setCheckOut('');
+                            }
+                        }} 
+                    />
                 </div>
                 <div style={inputContainerStyle}>
                     <label style={miniLabelStyle}>📅 Salida</label>
-                    <input type="date" style={inputStyle} onChange={(e) => setCheckOut(e.target.value)} />
+                    <input 
+                        type="date" 
+                        min={checkIn ? new Date(new Date(checkIn).getTime() + 86400000).toISOString().split('T')[0] : today}
+                        disabled={!checkIn} 
+                        style={{
+                            ...inputStyle,
+                            backgroundColor: !checkIn ? '#f0f0f0' : 'white',
+                            cursor: !checkIn ? 'not-allowed' : 'text'
+                        }} 
+                        value={checkOut}
+                        onChange={(e) => setCheckOut(e.target.value)} 
+                    />
                 </div>
             </div>
 

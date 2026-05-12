@@ -2,18 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Reserva;
+
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
+        return Inertia::render('Usuarios/index', [
+            'usuarios' => User::with('roles')->latest()->get(),
+            'roles' => Role::all(),
+        ]);
     }
 
     /**
@@ -21,7 +28,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        //
+        
     }
 
     /**
@@ -29,13 +36,26 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'role' => 'required|exists:roles,name',
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ])->assignRole($request->role);
+
+        return redirect()->back()->with('success', 'Usuario creado correctamente');
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(User $habitacione)
+    public function show(User $user)
     {
         //
     }
@@ -43,7 +63,7 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(User $habitacione)
+    public function edit(User $user)
     {
         //
     }
@@ -51,7 +71,7 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $habitacione)
+    public function update(Request $request, User $user)
     {
         //
     }
@@ -59,9 +79,10 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $habitacione)
+    public function destroy(User $user)
     {
-        //
+        $user->delete();
+        return redirect()->back()->with('success', 'Usuario eliminado correctamente');
     }
 
     public function hacerReserva(Request $request){
