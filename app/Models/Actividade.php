@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Actividade extends Model
 {
+    protected $table = 'activities';
     protected $fillable = [
         'hotele_id',
         'nombre_actividad',
@@ -20,8 +21,9 @@ class Actividade extends Model
     /**
      * Relación: Una actividad pertenece a un hotel.
      */
-    public function hotel(): BelongsTo
+    public function hoteles()
     {
-        return $this->belongsTo(Hotele::class, 'hotele_id');
+        // activity_hotel es el nombre de la tabla pivote
+        return $this->belongsToMany(Hotele::class, 'activity_hotel', 'activity_id', 'hotel_id');
     }
 }

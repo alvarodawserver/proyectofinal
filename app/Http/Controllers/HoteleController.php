@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Hotele;
 use App\Models\Oferta;
+use App\Models\Servicio;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class HoteleController extends Controller
@@ -100,9 +102,23 @@ class HoteleController extends Controller
     {
         $propietarios = User::role('propietario')->get(['id', 'name']);
 
+        $servicios = Servicio::all(['id', 'nombre_servicio']);
+
+        // 3. Cargamos los IDs de los servicios que ya tiene este hotel
+        // Esto es vital para que aparezcan marcados en el componente de React
+        $hotele->load('servicios'); // Carga la relación
+        $hotele->servicios_ids = $hotele->servicios->pluck('id');
+
+        // 4. (Opcional) Si quieres pasar la URL de la imagen si existe
+        $hotele->imagen_url = $hotele->imagen_principal 
+            ? asset('storage/' . $hotele->imagen_principal) 
+            : null;
+        $propietarios = User::role('propietario')->get(['id', 'name']);
+
         return Inertia::render('Hoteles/Admin/edit', [
             'hotel' => $hotele,
-            'propietarios' => $propietarios
+            'propietarios' => $propietarios,
+            'servicios' => $servicios
         ]);
     }
 
@@ -110,21 +126,39 @@ class HoteleController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, Hotele $hotele)
-    {
-        $validated = $request->validate([
-            'nombre_hotel' => 'required|string|max:255',
-            'propietario_id' => 'required|exists:users,id',
-            'direccion' => 'required|string|max:255',
-            'ciudad' => 'required|string|max:255',
-            'latitud' => 'required|numeric',
-            'longitud' => 'required|numeric',
-            'descripcion' => 'nullable|string',
-        ]);
+{
+    $validated = $request->validate([
+        'nombre_hotel' => 'required|string|max:255',
+        'propietario_id' => 'required|exists:users,id',
+        'direccion' => 'required|string|max:255',
+        'ciudad' => 'required|string|max:255',
+        'latitud' => 'required|numeric',
+        'longitud' => 'required|numeric',
+        'descripcion' => 'nullable|string',
+        'imagen_principal' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        'servicios' => 'nullable|array',
+        'servicios.*' => 'exists:servicios,id', 
+    ]);
 
-        $hotele->update($validated);
 
-        return redirect()->route('hoteles.index')->with('success', 'Hotel actualizado exitosamente.');
+    if ($request->hasFile('imagen_principal')) {
+
+        if ($hotele->imagen_principal) {
+            Storage::disk('public')->delete($hotele->imagen_principal);
+        }
+        
+        $path = $request->file('imagen_principal')->store('hoteles', 'public');
+        $validated['imagen_principal'] = $path;
     }
+
+
+    $hotele->update($validated);
+
+    
+    $hotele->servicios()->sync($request->input('servicios', []));
+
+    return redirect()->route('hoteles.index')->with('success', 'Hotel actualizado correctamente.');
+}
 
     /**
      * Remove the specified resource from storage.

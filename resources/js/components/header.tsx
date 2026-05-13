@@ -1,92 +1,96 @@
-import React, { useState } from 'react'; 
+import React, { useState, useEffect } from 'react'; 
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { Calendar, Settings, ShoppingCart, X } from 'lucide-react';
 import Button from "./button";
-import LoginModal from "./login-modal"; 
-import { Calendar, Settings, ShoppingCart } from 'lucide-react'; // Importamos ShoppingCart
+import LoginForm from "./auth/login-form"; 
+import RegisterForm from "./auth/register-form";
 
 const Header = () => {
   const { auth } = usePage<any>().props;
-  const user = auth.user;
+  const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
 
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  // Cerrar modal con la tecla Esc
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('login') === 'true') {
-        setIsLoginOpen(true); 
-    }
-}, []);
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setAuthMode(null); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   return (
-    <header style={headerContainerStyle}>
-      <div style={topBarStyle}>
-        <div style={logoStyle}>
-          <Link href="/" style={{ textDecoration: 'none', color: 'white' }}>
-            Refugio del mar
-          </Link>
-        </div>
-
-        <div style={topActionsContainerStyle}>
-          <button type="button" style={topButtonStyle}>💬 Idioma</button>
-          <Link
-            href="/mis-reservas"
-            className="flex items-center gap-2 rounded-full bg-aqua-700 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105">
-            <Calendar />Mis reservas
-          </Link>
-          
-          {auth.user?.can_access_admin && (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105"
-            >
-              <Settings size={18} className="animate-spin-slow" />
-              <span className="text-xs font-bold">Panel Admin</span>
+    <>
+      <header style={headerContainerStyle}>
+        <div style={topBarStyle}>
+          <div style={logoStyle}>
+            <Link href="/" style={{ textDecoration: 'none', color: 'white' }}>
+              Refugio del mar
             </Link>
-          )}
+          </div>
 
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              {/* BOTÓN DEL CARRITO */}
-              <Link 
-                href="/carrito" 
-                style={cartContainerStyle}
-                title="Ver mi carrito"
-              >
-                <ShoppingCart size={20} color="white" />
-                {/* Opcional: Podrías añadir un círculo con el número de items aquí */}
+          <div style={topActionsContainerStyle}>
+            <button type="button" style={topButtonStyle}>💬 Idioma</button>
+            <Link href="/mis-reservas" className="flex items-center gap-2 rounded-full bg-aqua-700 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105">
+              <Calendar size={18}/>Mis reservas
+            </Link>
+            
+            {auth.user?.can_access_admin && (
+              <Link href="/dashboard" className="flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105">
+                <Settings size={18} className="animate-spin-slow" />
+                <span className="text-xs font-bold">Panel Admin</span>
               </Link>
+            )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>Hola,</span>
-                <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{user.name}</span>
+            {auth.user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <Link href="/carrito" style={cartContainerStyle} title="Ver mi carrito">
+                  <ShoppingCart size={20} color="white" />
+                </Link>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>Hola,</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{auth.user.name}</span>
+                </div>
+                <Link href="/logout" method="post" as="button" style={logoutLinkStyle}>Salir</Link>
               </div>
-              
-              <Link 
-                href="/logout" 
-                method="post" 
-                as="button" 
-                style={logoutLinkStyle}
-              >
-                Salir
-              </Link>
-            </div>
-          ) : (
-            <div onClick={() => setIsLoginOpen(true)}>
-              <Button label="Inicio de sesión" style={loginButtonStyle} />
-            </div>
-          )}
+            ) : (
+              <div onClick={() => setAuthMode('login')}>
+                <Button label="Inicio de sesión" style={loginButtonStyle} />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </header>
 
-      <LoginModal 
-        isOpen={isLoginOpen} 
-        onClose={() => setIsLoginOpen(false)} 
-      />
-    </header>
+      {/* MODAL CON FONDO BORROSO */}
+      {authMode && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Botón Cerrar */}
+            <button 
+              onClick={() => setAuthMode(null)}
+              className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+
+            <div className="p-8">
+              {authMode === 'login' ? (
+                <LoginForm 
+                  onSwitchToRegister={() => setAuthMode('register')} 
+                  canResetPassword={true}
+                />
+              ) : (
+                <RegisterForm 
+                  onSwitchToLogin={() => setAuthMode('login')} 
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
-// --- ESTILOS ---
+
 
 const headerContainerStyle = { backgroundColor: '#008080', color: 'white' };
 
@@ -107,7 +111,7 @@ const topActionsContainerStyle = {
 };
 
 const topButtonStyle = {
-  background: 'rgba(255, 255, 255, 0.2)', // Un poco transparente queda más elegante
+  background: 'rgba(255, 255, 255, 0.2)',
   border: 'none',
   padding: '5px 12px',
   borderRadius: '15px',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tipo;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class TipoController extends Controller
 {
@@ -11,55 +12,56 @@ class TipoController extends Controller
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
+{
+    $tipos = Tipo::all();
+    return Inertia::render('Tipos/index', [
+        'tipos' => $tipos
+    ]);
+}
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
+public function create()
+{
+    return Inertia::render('Tipos/create');
+}
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'tipo_habitacion' => 'required|string|max:255',
+        'capacidad' => 'required|integer|min:1',
+        'precio_base' => 'required|numeric|min:0',
+        'cantidad_habitacion' => 'required|integer|min:1',
+    ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Tipo $tipo)
-    {
-        //
-    }
+    Tipo::create($validated);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Tipo $tipo)
-    {
-        //
-    }
+    return redirect()->route('tipos.index')->with('success', 'Tipo de habitación creado.');
+}
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Tipo $tipo)
-    {
-        //
-    }
+public function edit(Tipo $tipo)
+{
+    return Inertia::render('Tipos/edit', [
+        'tipo' => $tipo
+    ]);
+}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Tipo $tipo)
-    {
-        //
-    }
+public function update(Request $request, Tipo $tipo)
+{
+    $validated = $request->validate([
+        'tipo_habitacion' => 'required|string|max:255',
+        'capacidad' => 'required|integer|min:1',
+        'precio_base' => 'required|numeric|min:0',
+        'cantidad_habitacion' => 'required|integer|min:1',
+    ]);
+
+    $tipo->update($validated);
+
+    return redirect()->route('tipos.index')->with('success', 'Tipo de habitación actualizado.');
+}
+
+public function destroy(Tipo $tipo)
+{
+    $tipo->delete();
+    return redirect()->back();
+}
 }

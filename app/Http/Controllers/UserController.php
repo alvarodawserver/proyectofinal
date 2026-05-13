@@ -71,10 +71,28 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
-    {
-        //
+    public function update(Request $request, User $usuario)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $usuario->id,
+        'role' => 'required',
+        'password' => 'nullable|min:8', 
+    ]);
+
+    $usuario->name = $validated['name'];
+    $usuario->email = $validated['email'];
+
+    if (!empty($validated['password'])) {
+        $usuario->password = Hash::make($validated['password']);
     }
+
+    $usuario->save();
+
+    $usuario->syncRoles([$validated['role']]);
+
+    return redirect()->back()->with('message', 'Usuario actualizado correctamente');
+}
 
     /**
      * Remove the specified resource from storage.

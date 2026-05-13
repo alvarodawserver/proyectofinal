@@ -31,7 +31,7 @@ class Hotele extends Model
     public function servicios(): BelongsToMany
     {
         return $this->belongsToMany(Servicio::class, 'servicio_hotel', 'hotele_id', 'servicio_id')
-                    ->withTimestamps(); // Si tu pivote tiene created_at y updated_at
+                    ->withTimestamps(); 
     }
     public function reviews()
 {
@@ -85,6 +85,11 @@ class Hotele extends Model
             ->where('fecha_inicio', '<=', now())
             ->where('fecha_fin', '>=', now())
             ->first(); 
+    }
+
+    public function actividades()
+    {
+        return $this->belongsToMany(Actividade::class, 'activity_hotel', 'hotel_id', 'activity_id');
     }
 
 }
