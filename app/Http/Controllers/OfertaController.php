@@ -6,6 +6,7 @@ use App\Models\Hotele;
 use App\Models\Oferta;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Psy\Command\WhereamiCommand;
 
 class OfertaController extends Controller
 {
@@ -14,10 +15,27 @@ class OfertaController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Ofertas/index', [
-            'ofertas' => Oferta::with('hotel')->latest()->get(),
-            'hoteles' => Hotele::select('id', 'nombre_hotel')->get()
-        ]);
+        $user = auth()->user();
+
+    if ($user->hasRole('admin') || $user->role === 'admin') {
+        $ofertas = Oferta::with('hotel')->latest()->get();
+        $hoteles = Hotele::select('id', 'nombre_hotel')->get();
+    } else {
+        $ofertas = Oferta::with('hotel')
+            ->whereHas('hotel', function ($query) use ($user) {
+                $query->where('propietario_id', $user->id);
+            })
+            ->latest()
+            ->get();
+        $hoteles = Hotele::select('id', 'nombre_hotel')
+            ->where('propietario_id', $user->id)
+            ->get();
+    }
+
+    return Inertia::render('Ofertas/index', [
+        'ofertas' => $ofertas,
+        'hoteles' => $hoteles
+    ]);
     }
 
     /**

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Habitacione;
 use App\Models\Hotele;
 use App\Models\Oferta;
 use App\Models\Servicio;
+use App\Models\Tipo;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +21,16 @@ class HoteleController extends Controller
     public function index()
     {
 
-        $hoteles = Hotele::withCount('habitaciones')->get();
+       $user = Auth::user();
+
+        
+        if ($user->hasRole('admin') || $user->role === 'admin') {
+            $hoteles = Hotele::withCount('habitaciones')->get();
+        } else {
+            $hoteles = Hotele::where('propietario_id', $user->id)
+                             ->withCount('habitaciones')
+                             ->get();
+        }
         
         return Inertia::render('Hoteles/Admin/index', [
             'hoteles' => $hoteles
@@ -41,7 +52,7 @@ class HoteleController extends Controller
     {
         $validated = $request->validate([
             'nombre_hotel' => 'required|string|max:255',
-            'propietario_id' => 'required|exists:users,id',
+            'propietario_id' => 'nullable|exists:users,id',
             'direccion' => 'required|string|max:255',
             'ciudad' => 'required|string|max:255',
             'latitud' => 'required|numeric',
@@ -51,6 +62,7 @@ class HoteleController extends Controller
 
         Hotele::create([
             'propietario_id' => Auth::user()->id,
+            'estado' => 'oculto',
             ...$validated
         ]);
         return redirect()->back()->with('success', 'Hotel creado exitosamente.');}
@@ -100,25 +112,25 @@ class HoteleController extends Controller
      */
     public function edit(Hotele $hotele)
     {
-        $propietarios = User::role('propietario')->get(['id', 'name']);
+        
 
+        $propietarios = User::role('propietario')->get(['id', 'name']);
         $servicios = Servicio::all(['id', 'nombre_servicio']);
 
-        // 3. Cargamos los IDs de los servicios que ya tiene este hotel
-        // Esto es vital para que aparezcan marcados en el componente de React
-        $hotele->load('servicios'); // Carga la relación
+        $hotele->load('servicios'); 
         $hotele->servicios_ids = $hotele->servicios->pluck('id');
-
-        // 4. (Opcional) Si quieres pasar la URL de la imagen si existe
+        $tiposHabitacion = Tipo::withCount(['habitaciones' => function ($query) use ($hotele) {
+        $query->where('hotele_id', $hotele->id);
+    }])->get(['id', 'tipo_habitacion', 'precio']);
         $hotele->imagen_url = $hotele->imagen_principal 
             ? asset('storage/' . $hotele->imagen_principal) 
             : null;
-        $propietarios = User::role('propietario')->get(['id', 'name']);
 
         return Inertia::render('Hoteles/Admin/edit', [
             'hotel' => $hotele,
             'propietarios' => $propietarios,
-            'servicios' => $servicios
+            'servicios' => $servicios,
+            'tipos_habitacion' => $tiposHabitacion
         ]);
     }
 
@@ -126,39 +138,36 @@ class HoteleController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, Hotele $hotele)
-{
-    $validated = $request->validate([
-        'nombre_hotel' => 'required|string|max:255',
-        'propietario_id' => 'required|exists:users,id',
-        'direccion' => 'required|string|max:255',
-        'ciudad' => 'required|string|max:255',
-        'latitud' => 'required|numeric',
-        'longitud' => 'required|numeric',
-        'descripcion' => 'nullable|string',
-        'imagen_principal' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        'servicios' => 'nullable|array',
-        'servicios.*' => 'exists:servicios,id', 
-    ]);
+    {
+        // BLINDAJE: También protegemos el método que procesa el formulario
 
+        $validated = $request->validate([
+            'nombre_hotel' => 'required|string|max:255',
+            'propietario_id' => 'nullable|exists:users,id',
+            'direccion' => 'required|string|max:255',
+            'estado' => 'required|string|max:255',
+            'ciudad' => 'required|string|max:255',
+            'latitud' => 'required|numeric',
+            'longitud' => 'required|numeric',
+            'descripcion' => 'nullable|string',
+            'imagen_principal' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'servicios' => 'nullable|array',
+            'servicios.*' => 'exists:servicios,id', 
+        ]);
 
-    if ($request->hasFile('imagen_principal')) {
-
-        if ($hotele->imagen_principal) {
-            Storage::disk('public')->delete($hotele->imagen_principal);
+        if ($request->hasFile('imagen_principal')) {
+            if ($hotele->imagen_principal) {
+                Storage::disk('public')->delete($hotele->imagen_principal);
+            }
+            $path = $request->file('imagen_principal')->store('hoteles', 'public');
+            $validated['imagen_principal'] = $path;
         }
-        
-        $path = $request->file('imagen_principal')->store('hoteles', 'public');
-        $validated['imagen_principal'] = $path;
+
+        $hotele->update($validated);
+        $hotele->servicios()->sync($request->input('servicios', []));
+
+        return redirect()->route('hoteles.index')->with('success', 'Hotel actualizado correctamente.');
     }
-
-
-    $hotele->update($validated);
-
-    
-    $hotele->servicios()->sync($request->input('servicios', []));
-
-    return redirect()->route('hoteles.index')->with('success', 'Hotel actualizado correctamente.');
-}
 
     /**
      * Remove the specified resource from storage.
@@ -169,6 +178,38 @@ class HoteleController extends Controller
         return redirect()->route('hoteles.index')->with('success', 'Hotel eliminado exitosamente.');
     }
 
+    public function generarHabitacionesMasa(Request $request)
+{
+    // Validación de rol
+    if (!auth()->user()->hasRole('admin') && auth()->user()->role !== 'admin') {
+        abort(403, 'No autorizado.');
+    }
+
+    $validated = $request->validate([
+        'hotele_id'       => 'required|exists:hoteles,id', 
+        'tipo_habitacion' => 'required|exists:tipos,id',   
+        'cantidad'        => 'required|integer|min:1|max:150',
+        'numero_inicio'   => 'required|integer|min:1',
+    ]);
+
+    $habitaciones = [];
+    $numeroActual = $validated['numero_inicio'];
+
+    for ($i = 0; $i < $validated['cantidad']; $i++) {
+        $habitaciones[] = [
+            'num_habitacion'  => $numeroActual,                 
+            'tipo_habitacion' => $validated['tipo_habitacion'], 
+            'hotele_id'       => $validated['hotele_id'],    
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ];
+        $numeroActual++;
+    }
+
+    Habitacione::insert($habitaciones);
+
+    return redirect()->back()->with('success', "Se han generado {$validated['cantidad']} habitaciones correctamente.");
+}
     private function getRatingDescription($rating)
     {
         if ($rating >= 9) return 'Excelente';

@@ -15,6 +15,6 @@ class Tipo extends Model
         'cantidad_habitacion'
     ];
     public function habitaciones(){
-        return $this->hasMany(Habitacione::class);
+        return $this->hasMany(Habitacione::class,'tipo_habitacion');
     }
 }

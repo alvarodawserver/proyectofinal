@@ -14,6 +14,7 @@ class Hotele extends Model
         'propietario_id',
         'descripcion',
         'direccion',
+        'estado',
         'ciudad',
         'categoria',
         'latitud',

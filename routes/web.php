@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActividadeController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ContactoController;
 use App\Http\Controllers\HoteleController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\OfertaController;
@@ -18,25 +19,32 @@ Route::get('/', [MainController::class, 'index'])->name('home');
 
 Route::get('/hoteles/{hotel}/show', [HoteleController::class, 'show'])->name('hoteles.show');
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::resource('hoteles',HoteleController::class)->except(['show']);
-    
-    Route::resource('tipos',TipoController::class);
-    Route::resource('actividades',ActividadeController::class);
-    Route::resource('categorias',CategoriaController::class);
-    Route::resource('ofertas',OfertaController::class);
+Route::get('dashboard', function () {
+        return Inertia::render('dashboard');
+})->middleware(['verified'])->name('dashboard');
+
+
+
+Route::middleware(['auth', 'role:admin|propietario'])->group(function () {
+    Route::resource('hoteles', HoteleController::class)->except(['show']);
+    Route::resource('ofertas', OfertaController::class);
     Route::patch('ofertas/{oferta}/toggle', [OfertaController::class, 'toggle'])->name('ofertas.toggle');
+
+    
+});
+
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('actividades', ActividadeController::class);
+    Route::resource('tipos', TipoController::class);
+    Route::resource('categorias', CategoriaController::class);
     Route::resource('usuarios', UserController::class);
     Route::post('/usuarios/store', [UserController::class, 'store'])->name('usuarios.store');
     Route::delete('/usuarios/{user}', [UserController::class, 'destroy'])->name('usuarios.destroy');
-
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
-    
-       
-    
+    Route::post('/hoteles/generar-habitaciones-masa', [HoteleController::class, 'generarHabitacionesMasa'])->name('hoteles.generarHabitacionesMasa');
 });
+
+
 Route::middleware(['auth'])->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
     Route::get('/carrito', [ReservaController::class, 'getCart'])->name('reservas.carrito');
@@ -52,8 +60,13 @@ Route::middleware(['auth'])->group(function () {
     })->name('pago.cancelado');
     Route::get('/mis-reservas', [ReservaController::class, 'index'])->name('reservas.index');
 });
+
+
+
 Route::get('/busqueda', [SearchController::class, 'busqueda'])->name('busqueda');
 Route::get('/api/sugerencias', [SearchController::class, 'sugerencias'])->name('api.sugerencias');
+Route::get('/contacto-propietario', [ContactoController::class, 'showForm'])->name('contacto.form');
+Route::post('/contacto-propietario', [ContactoController::class, 'enviarSolicitud'])->name('contacto.send');
 
 
 

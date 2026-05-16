@@ -13,9 +13,10 @@ class MainController extends Controller
     public function index()
     {
         $hoy = Carbon::now();
-
+    
         // 1. HOTELES (Sección general)
         $hoteles = Hotele::with(['images' => fn($q) => $q->where('is_primary', true)])
+            ->where('estado', 'disponible')
             ->get()
             ->map(function ($hotel) use ($hoy) {
                 // Buscamos el precio base más barato

@@ -44,6 +44,8 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                     'can_access_admin' => $request->user()->hasRole('admin'),
+                    'can_access_propietario' => $request->user()->hasRole('propietario'),
+                    'roles' => $request->user()->getRoleNames(), 
                 ] : null,
                 ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

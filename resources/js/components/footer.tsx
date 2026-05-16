@@ -1,3 +1,4 @@
+import { Link } from "@inertiajs/react";
 
 const Footer = () => {
   return (
@@ -8,7 +9,8 @@ const Footer = () => {
         <div style={footerColumnStyle}>
           <h4 style={columnTitleStyle}>Empresa</h4>
           <a href="#" style={footerLinkStyle}>Quiénes somos</a>
-          <a href="#" style={footerLinkStyle}>Contáctanos</a>
+          <Link href="/contacto-propietario" style={footerLinkStyle}>Contáctanos
+          </Link>
         </div>
 
 

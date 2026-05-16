@@ -42,6 +42,7 @@ class SearchController extends Controller
                      AND fecha_fin >= NOW() 
                      LIMIT 1), 0) / 100)
             ')
+            ->where('estado', 'disponible')
             ->join('tipos', 'habitaciones.tipo_habitacion', '=', 'tipos.id')
             ->whereColumn('habitaciones.hotele_id', 'hoteles.id')
         ]);

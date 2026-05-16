@@ -32,10 +32,17 @@ const Header = () => {
               <Calendar size={18}/>Mis reservas
             </Link>
             
-            {auth.user?.can_access_admin && (
+            {auth.user?.can_access_admin &&(
               <Link href="/dashboard" className="flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105">
                 <Settings size={18} className="animate-spin-slow" />
                 <span className="text-xs font-bold">Panel Admin</span>
+              </Link>
+            )}
+
+            {auth.user?.can_access_propietario &&(
+              <Link href="/hoteles" className="flex items-center gap-2 rounded-full bg-neutral-900 px-3 py-2 text-white shadow-lg transition-transform hover:scale-105">
+                <Settings size={18} className="animate-spin-slow" />
+                <span className="text-xs font-bold">Panel Propietario</span>
               </Link>
             )}
 

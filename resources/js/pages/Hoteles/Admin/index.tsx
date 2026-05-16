@@ -11,6 +11,7 @@ interface Hotel {
 
 export default function Index({ hoteles }: { hoteles: Hotel[] }) {
     return (
+        
         <AppLayout breadcrumbs={[{ title: 'Hoteles', href: '/admin/hoteles' }]}>
             <Head title="Gestión de Hoteles" />
 
