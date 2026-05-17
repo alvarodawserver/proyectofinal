@@ -51,6 +51,7 @@ export interface Hotel {
     categoria: string;
     rating: number;
     precio_min: number;
+    politica_cancelacion: { dias_antes: number; porcentaje: number }[]; 
     images: Image[];
     servicios: Servicio[];
     reviews?: Review[]; 

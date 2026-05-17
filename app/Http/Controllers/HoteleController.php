@@ -63,6 +63,10 @@ class HoteleController extends Controller
         Hotele::create([
             'propietario_id' => Auth::user()->id,
             'estado' => 'oculto',
+            'politica_cancelacion' => json_encode([
+                ['dias_antes' => 7, 'porcentaje' => 100],
+                ['dias_antes' => 3, 'porcentaje' => 50]
+            ]),
             ...$validated
         ]);
         return redirect()->back()->with('success', 'Hotel creado exitosamente.');}
@@ -74,6 +78,15 @@ class HoteleController extends Controller
 {
     // Mantenemos tu carga de relaciones
     $hotel = Hotele::with(['images', 'servicios', 'habitaciones.tipo'])->findOrFail($hotel->id);
+    $ratingCount = $hotel->reviews()->count();
+    $ratingAverage = $hotel->reviews()->avg('valoracion') ?? 0;
+    
+    // 2. Buscamos una review "destacada" (la más reciente de 4 o 5 estrellas)
+    $reviewDestacada = $hotel->reviews()
+        ->with('user:id,name,profile_photo_url') // Solo traemos lo que necesitamos del usuario
+        ->where('valoracion', '>=', 4)
+        ->latest()
+        ->first();
 
     // --- LÓGICA DE OFERTAS ---
     $ofertaAplicada = null;
@@ -85,19 +98,16 @@ class HoteleController extends Controller
             ->where('fecha_fin', '>=', now())
             ->first();
     }
-    // -------------------------
-
-    $avg_rating = round($hotel->reviews()->avg('valoracion'), 1) ?? 0;
-    $num_reviews = $hotel->reviews()->count();
 
     return Inertia::render('Hoteles/show', [
         'hotel' => $hotel,
         'oferta_aplicada' => $ofertaAplicada, // <--- Pasamos la oferta (será null si no hay)
         'rating' => [
-            'average' => $avg_rating,
-            'count' => $num_reviews,
-            'description' => $this->getRatingDescription($avg_rating),
+            'average' => round($ratingAverage, 1),
+            'count' => $ratingCount,
+            'description' => $this->getRatingDescription($ratingAverage),
         ],
+        'review_destacada' => $reviewDestacada,
         'images' => $hotel->images->map(fn($img) => asset('storage/' . $img->path)),
         'servicios' => $hotel->servicios->map(fn($srv) => [
             'id' => $srv->id,
@@ -145,6 +155,9 @@ class HoteleController extends Controller
             'nombre_hotel' => 'required|string|max:255',
             'propietario_id' => 'nullable|exists:users,id',
             'direccion' => 'required|string|max:255',
+            'politica_cancelacion' => 'required|array',
+            'politica_cancelacion.*.dias_antes' => 'required|integer|min:0',
+            'politica_cancelacion.*.porcentaje' => 'required|integer|min:0|max:100',
             'estado' => 'required|string|max:255',
             'ciudad' => 'required|string|max:255',
             'latitud' => 'required|numeric',
@@ -210,12 +223,21 @@ class HoteleController extends Controller
 
     return redirect()->back()->with('success', "Se han generado {$validated['cantidad']} habitaciones correctamente.");
 }
-    private function getRatingDescription($rating)
+    private function getRatingDescription(float $average): string
     {
-        if ($rating >= 9) return 'Excelente';
-        if ($rating >= 8) return 'Fabuloso';
-        if ($rating >= 7) return 'Muy bueno';
-        if ($rating >= 6) return 'Bueno';
-        return 'Recomendado';
+        if ($average === 0.0) {
+            return 'Sin puntuación';
+        }
+        
+        // Rangos basados en una escala del 1 al 5
+        return match (true) {
+            $average >= 4.7 => 'Excepcional',
+            $average >= 4.5 => 'Magnífico',
+            $average >= 4.2 => 'Fantástico',
+            $average >= 3.8 => 'Muy bien',
+            $average >= 3.5 => 'Bien',
+            $average >= 3.0 => 'Aceptable',
+            default         => 'Mejorable',
+        };
     }
 }

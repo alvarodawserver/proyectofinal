@@ -3,6 +3,11 @@ import { Head, useForm, usePage, router } from '@inertiajs/react';
 import * as Icons from 'lucide-react';
 import { CheckCircle2, Layers, Hash, Plus } from 'lucide-react';
 
+interface PoliticaCancelacion {
+    dias_antes: number;
+    porcentaje: number;
+}
+
 interface Hotel {
     id: number;
     nombre_hotel: string;
@@ -15,6 +20,7 @@ interface Hotel {
     longitud: number;
     imagen_url?: string;
     servicios_ids: number[];
+    politica_cancelacion?: PoliticaCancelacion[] | string;
 }
 
 interface Servicio {
@@ -22,7 +28,6 @@ interface Servicio {
     nombre_servicio: string;
     icono: string | null;
 }
-
 
 interface TipoHabitacion {
     id: number;
@@ -57,9 +62,20 @@ const DynamicIcon = ({ iconName, isSelected }: { iconName: string | null; isSele
     );
 };
 
-
 export default function Edit({ hotel, propietarios, servicios, tipos_habitacion }: Props) {
     const { auth } = usePage().props as any;
+
+    // Procesamos la política por si llega codificada como JSON string o directamente como array
+    const obtenerPoliticasIniciales = (): PoliticaCancelacion[] => {
+        if (!hotel.politica_cancelacion) return [];
+        if (Array.isArray(hotel.politica_cancelacion)) return hotel.politica_cancelacion;
+        try {
+            return JSON.parse(hotel.politica_cancelacion);
+        } catch (e) {
+            return [];
+        }
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT', 
         nombre_hotel: hotel.nombre_hotel || '',
@@ -72,6 +88,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
         longitud: hotel.longitud || '',
         imagen_principal: null as File | null,
         servicios: hotel.servicios_ids || [],
+        politica_cancelacion: obtenerPoliticasIniciales(),
     });
 
     const toggleServicio = (id: number) => {
@@ -82,11 +99,33 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
         setData('servicios', current);
     };
 
+    // Funciones auxiliares para gestionar los tramos de la política de cancelación de forma dinámica
+    const addPoliticaTramo = () => {
+        setData('politica_cancelacion', [
+            ...data.politica_cancelacion,
+            { dias_antes: 7, porcentaje: 100 }
+        ]);
+    };
+
+    const removePoliticaTramo = (index: number) => {
+        const filtrados = data.politica_cancelacion.filter((_, i) => i !== index);
+        setData('politica_cancelacion', filtrados);
+    };
+
+    const handlePoliticaChange = (index: number, field: keyof PoliticaCancelacion, val: number) => {
+        const modificados = data.politica_cancelacion.map((item, i) => {
+            if (i === index) {
+                return { ...item, [field]: val };
+            }
+            return item;
+        });
+        setData('politica_cancelacion', modificados);
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(`/hoteles/${hotel.id}`);
     };
-
 
     const handleGenerarMasa = (e: React.FormEvent<HTMLFormElement>, tipoId: number) => {
         e.preventDefault();
@@ -204,7 +243,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm border-2 transition-all ${data.estado === 'oculto'
                                                 ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 shadow-sm'
                                                 : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-500 hover:border-neutral-300'
-                                            }`}
+                                        }`}
                                     >
                                         <Icons.EyeOff size={16} />
                                         Oculto (Borrador)
@@ -216,7 +255,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                         className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm border-2 transition-all ${data.estado === 'disponible'
                                                 ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400 shadow-sm'
                                                 : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-500 hover:border-neutral-300'
-                                            }`}
+                                        }`}
                                     >
                                         <Icons.Eye size={16} />
                                         Disponible (Público)
@@ -287,12 +326,77 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                         </div>
                     </div>
 
-                    {/* BLOQUE 3: SERVICIOS */}
+                    {/* BLOQUE 3: POLÍTICA DE CANCELACIÓN PERSONALIZADA */}
+                    <div className="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm dark:bg-neutral-900 dark:border-neutral-800 space-y-6">
+                        <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                            <span className="w-2 h-6 bg-orange-500 rounded-full inline-block"></span>
+                            Políticas de Cancelación (Tramos de Reembolso)
+                        </h2>
+                        <p className="text-xs text-neutral-400 dark:text-neutral-500">
+                            Añade las reglas de devolución basándote en la antelación de la solicitud. El sistema cruzará estos valores automáticamente al procesar cancelaciones de clientes.
+                        </p>
+
+                        <div className="space-y-3">
+                            {data.politica_cancelacion.map((item, index) => (
+                                <div key={index} className="flex items-center gap-4 bg-neutral-50 dark:bg-neutral-800/40 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Días de antelación mínimos</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.dias_antes}
+                                                    onChange={e => handlePoliticaChange(index, 'dias_antes', parseInt(e.target.value) || 0)}
+                                                    className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-xs font-bold text-neutral-800 dark:text-neutral-100 focus:ring-orange-500"
+                                                    placeholder="Ej: 7"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400 font-bold uppercase">Días</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-neutral-400 uppercase mb-1">Porcentaje de Reembolso</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    value={item.porcentaje}
+                                                    onChange={e => handlePoliticaChange(index, 'porcentaje', parseInt(e.target.value) || 0)}
+                                                    className="w-full bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-xs font-bold text-neutral-800 dark:text-neutral-100 focus:ring-orange-500"
+                                                    placeholder="Ej: 100"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-neutral-400 font-bold uppercase">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removePoliticaTramo(index)}
+                                        className="p-2 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors self-end"
+                                    >
+                                        <Icons.Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={addPoliticaTramo}
+                                className="w-full py-3 border-2 border-dashed border-neutral-200 dark:border-neutral-800 hover:border-orange-500 dark:hover:border-orange-500 rounded-xl text-xs font-bold text-neutral-500 hover:text-orange-600 dark:hover:text-orange-400 transition-all flex items-center justify-center gap-2 bg-neutral-50/20"
+                            >
+                                <Icons.PlusCircle size={14} /> Añadir nueva regla de tramo
+                            </button>
+                        </div>
+                        {errors.politica_cancelacion && <p className="text-red-500 text-xs mt-1">{errors.politica_cancelacion}</p>}
+                    </div>
+
+                    {/* BLOQUE 4: SERVICIOS */}
                     <div className="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm dark:bg-neutral-900 dark:border-neutral-800">
                         <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200 mb-6 flex items-center gap-2">
                             <span className="w-2 h-6 bg-indigo-500 rounded-full inline-block"></span>
                             Servicios Disponibles
-                        </h2>
+                        </h2> 
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                             {servicios && servicios.length > 0 ? (
@@ -352,9 +456,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                     </div>
                 </form>
 
-                {/* ========================================================================= */}
-                {/* NUEVO BLOQUE: SECCIÓN DE INVENTARIO Y ASIGNACIÓN MASIVA (EXCLUSIVO ADMIN) */}
-                {/* ========================================================================= */}
+                {/* INVENTARIO Y ASIGNACIÓN MASIVA */}
                 <div className="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm dark:bg-neutral-900 dark:border-neutral-800 space-y-6">
                     <div>
                         <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
@@ -378,7 +480,6 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                     onSubmit={(e) => handleGenerarMasa(e, tipo.id)}
                                     className="p-4 border border-neutral-100 dark:border-neutral-800/80 rounded-xl bg-neutral-50/50 dark:bg-neutral-800/20 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                                 >
-                                    {/* Info Detallada del Tipo */}
                                     <div className="space-y-1">
                                         <h4 className="text-sm font-black text-neutral-800 dark:text-neutral-200 uppercase tracking-tight">
                                             {tipo.tipo_habitacion}
@@ -390,9 +491,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                         </p>
                                     </div>
 
-                                    {/* Controles de Entrada Masiva */}
                                     <div className="flex flex-wrap items-center gap-3">
-                                        {/* Input: Cantidad */}
                                         <div className="w-full sm:w-32 relative">
                                             <input 
                                                 type="number" 
@@ -406,7 +505,6 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                             <Layers className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" size={13} />
                                         </div>
 
-                                        {/* Input: Nº Inicial */}
                                         <div className="w-full sm:w-36 relative">
                                             <input 
                                                 type="number" 
@@ -419,7 +517,6 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                             <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" size={13} />
                                         </div>
 
-                                        {/* Botón de Inyección (Maneja el submit automáticamente) */}
                                         <button 
                                             type="submit"
                                             className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shadow-md shadow-purple-500/10"

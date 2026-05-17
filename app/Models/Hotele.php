@@ -13,6 +13,7 @@ class Hotele extends Model
         'nombre_hotel',
         'propietario_id',
         'descripcion',
+        'politica_cancelacion',
         'direccion',
         'estado',
         'ciudad',
@@ -22,7 +23,9 @@ class Hotele extends Model
     ];
 
     protected $appends = ['rating', 'precio_min'];
-
+    protected $casts = [
+        'politica_cancelacion' => 'array',
+    ];
 
 
 

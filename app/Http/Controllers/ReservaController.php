@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Habitacione;
 use App\Models\Reserva;
 use App\Models\Oferta;
+use App\Mail\SolicitudReembolsoMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 
 class ReservaController extends Controller
@@ -17,7 +19,7 @@ class ReservaController extends Controller
     {
         $reservas = Reserva::with(['habitaciones.hotele', 'habitaciones.tipo'])
             ->where('user_id', auth()->id())
-            ->whereIn('estado', ['pagada', 'cancelada'])
+            ->whereIn('estado', ['pagada', 'cancelada', 'reembolso_pendiente'])
             ->orderBy('fecha_entrada', 'desc')
             ->get();
 
@@ -35,7 +37,6 @@ class ReservaController extends Controller
             return redirect()->route('login')->with('error', 'Debes iniciar sesión para reservar.');
         }
 
-
         $request->validate([
             'hotel_id' => 'required|exists:hoteles,id',
             'habitaciones' => 'required|array|min:1',
@@ -49,7 +50,6 @@ class ReservaController extends Controller
         $salida = $request->fecha_salida;
         $habitacionesIds = $request->habitaciones;
 
-       
         foreach ($habitacionesIds as $hId) {
             $yaReservada = Reserva::where('estado', 'pagada')
                 ->whereHas('habitaciones', function ($q) use ($hId) {
@@ -62,7 +62,6 @@ class ReservaController extends Controller
                 ->exists();
 
             if ($yaReservada) {
-                // Buscamos el nombre de la habitación para un error más descriptivo
                 $h = Habitacione::find($hId);
                 return back()->with('error', "La habitación {$h->id} ya no está disponible para estas fechas. Alguien ha sido más rápido.");
             }
@@ -145,5 +144,66 @@ class ReservaController extends Controller
         $reserva->delete();
 
         return redirect()->back()->with('success', 'Reserva eliminada del carrito.');
+    }
+
+    /**
+     * Gestiona la solicitud de cancelación calculando el reembolso manual 
+     * en base a las políticas del hotel y enviando una alerta por email.
+     */
+    public function solicitarCancelacion(Reserva $reserva)
+    {
+        if ($reserva->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($reserva->estado !== 'pagada') {
+            return back()->with('error', 'Solo se pueden cancelar reservas que ya estén pagadas.');
+        }
+
+        // Recuperamos el hotel asociado a través de la relación de su primera habitación
+        $primeraHabitacion = $reserva->habitaciones()->with('hotele')->first();
+        
+        if (!$primeraHabitacion || !$primeraHabitacion->hotele) {
+            return back()->with('error', 'No se ha podido localizar el hotel asociado a esta reserva.');
+        }
+
+        $hotel = $primeraHabitacion->hotele;
+
+        // Calculamos la antelación (días enteros) entre el momento actual y el día del check-in
+        $hoy = Carbon::now()->startOfDay();
+        $fechaEntrada = Carbon::parse($reserva->fecha_entrada)->startOfDay();
+        $diasAntelacion = $hoy->diffInDays($fechaEntrada, false);
+
+        $porcentajeReembolso = 0;
+
+        // Si cancela antes del día de entrada, cruzamos los datos con su JSON de política
+        if ($diasAntelacion > 0) {
+            // Si el hotel no tiene política guardada, usamos un fallback estándar por seguridad
+            $politicas = collect($hotel->politica_cancelacion ?? [
+                ['dias_antes' => 7, 'porcentaje' => 100],
+                ['dias_antes' => 3, 'porcentaje' => 50]
+            ])->sortByDesc('dias_antes');
+
+            foreach ($politicas as $politica) {
+                if ($diasAntelacion >= $politica['dias_antes']) {
+                    $porcentajeReembolso = $politica['porcentaje'];
+                    break;
+                }
+            }
+        }
+
+
+        $montoReembolso = ($reserva->precio_total * $porcentajeReembolso) / 100;
+
+        // Ponemos la reserva en espera de que el administrador ejecute el retorno en Stripe
+        $reserva->update([
+            'estado' => 'reembolso_pendiente'
+        ]);
+
+        Mail::to('alvaro.vidal@iesdonana.org')->send(
+            new SolicitudReembolsoMail($reserva, $montoReembolso, $diasAntelacion)
+        );
+
+        return redirect()->back()->with('success', 'Tu solicitud de cancelación se ha procesado. Recibirás tu reembolso en tu tarjeta de acuerdo con la política del hotel.');
     }
 }
