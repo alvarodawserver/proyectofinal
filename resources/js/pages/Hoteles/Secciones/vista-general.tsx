@@ -1,5 +1,3 @@
-// resources/js/Pages/Hoteles/Secciones/vista-general.tsx
-
 import { Hotel } from '@/types';
 import { MapPin } from 'lucide-react';
 import SearchBar from '@/components/search-bar';
@@ -10,9 +8,11 @@ interface Props {
     images: string[];
     rating: { average: number; count: number; description: string };
     review_destacada: any;
+    eligida_reserva_id: number | null; 
+    onActionClick: () => void;         
 }
 
-export default function GeneralSection({ hotel, images, rating, review_destacada }: Props) {
+export default function GeneralSection({ hotel, images, rating, review_destacada, eligida_reserva_id, onActionClick }: Props) {
     const galeria = images.length > 0 ? images : ['https://via.placeholder.com/800x500?text=Sin+Foto'];
 
     return (
@@ -45,8 +45,13 @@ export default function GeneralSection({ hotel, images, rating, review_destacada
 
             {/* PARTE DERECHA: Sidebar (Rating y Mapa) */}
             <div style={{ flex: '1 1 300px' }}>
-                {/* NUEVO: Llamada al componente modularizado */}
-                <CuadroReview rating={rating} />
+                {/* Corregido: Ahora sí le inyectamos las variables locales mapeadas desde las Props */}
+                <CuadroReview 
+                    rating={rating}
+                    review_destacada={review_destacada}
+                    eligida_reserva_id={eligida_reserva_id}
+                    onActionClick={onActionClick} 
+                />
 
                 <div style={mapBoxStyle}>
                     <MapPin style={{ color: '#008080' }} size={24} />

@@ -1,23 +1,22 @@
-// resources/js/Pages/Hoteles/Secciones/cuadro_review.tsx
-
 interface CuadroReviewProps {
     rating: {
         average: number;
         count: number;
         description: string;
     };
-    // Ahora reflejamos la estructura real de tu base de datos y relaciones de Laravel
     review_destacada?: {
         comentario: string;
         valoracion: number;
         user: {
             name: string;
-            profile_photo_url?: string; // Por si usas Jetstream o guardas avatares
+            profile_photo_url?: string;
         };
     } | null;
+    eligida_reserva_id: number | null; 
+    onActionClick: () => void;         
 }
 
-export default function CuadroReview({ rating, review_destacada }: CuadroReviewProps) {
+export default function CuadroReview({ rating, review_destacada, eligida_reserva_id, onActionClick }: CuadroReviewProps) {
     
     // Función para renderizar las estrellas doradas
     const renderStars = (rating: number) => {
@@ -48,7 +47,6 @@ export default function CuadroReview({ rating, review_destacada }: CuadroReviewP
             {/* CUERPO: Reseña destacada */}
             {review_destacada ? (
                 <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
-                    {/* El comentario con truncado por CSS (3 líneas máx) */}
                     <p style={commentStyle}>
                         “{review_destacada.comentario}”
                     </p>
@@ -57,7 +55,7 @@ export default function CuadroReview({ rating, review_destacada }: CuadroReviewP
                         {/* Info del Usuario */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <img 
-                                src={review_destacada.user.profile_photo_url || `https://ui-avatars.com/api/?name=${review_destacada.user.name}&background=0D8ABC&color=fff`} 
+                                src={review_destacada.user.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(review_destacada.user.name)}&background=0D8ABC&color=fff`} 
                                 alt="Avatar" 
                                 style={{ borderRadius: '50%', width: '24px', height: '24px', objectFit: 'cover' }} 
                             /> 
@@ -72,11 +70,30 @@ export default function CuadroReview({ rating, review_destacada }: CuadroReviewP
                 </div>
             ) : (
                 <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '15px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.8rem', color: '#999', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: '0.8rem', color: '#999', fontStyle: 'italic', margin: 0 }}>
                         Aún no hay reseñas de viajeros.
                     </p>
                 </div>
             )}
+
+            {/* SECCIÓN NUEVA: Llamada a la acción (Acceso rápido) */}
+            <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '12px', textAlign: 'center' }}>
+                {eligida_reserva_id ? (
+                    <button 
+                        onClick={onActionClick}
+                        style={writeButtonStyle}
+                    >
+                        ✍️ Dejar mi opinión
+                    </button>
+                ) : (
+                    <button 
+                        onClick={onActionClick}
+                        style={readLinkStyle}
+                    >
+                        Leer todas las opiniones →
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
@@ -88,7 +105,9 @@ const ratingBoxStyle = {
     padding: '20px', 
     borderRadius: '16px', 
     border: '1px solid #D2B48C', 
-    boxShadow: '0 4px 12px rgba(0,0,0,0.03)' 
+    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+    display: 'flex',
+    flexDirection: 'column' as const
 };
 
 const ratingScoreStyle = { 
@@ -112,4 +131,29 @@ const commentStyle = {
     WebkitBoxOrient: 'vertical' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis'      
+};
+
+
+const writeButtonStyle = {
+    width: '100%',
+    backgroundColor: '#008080',
+    color: 'white',
+    border: 'none',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+};
+
+const readLinkStyle = {
+    background: 'none',
+    border: 'none',
+    color: '#8B4513',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    padding: '4px 0'
 };

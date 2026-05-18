@@ -48,11 +48,11 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
     Route::get('/carrito', [ReservaController::class, 'getCart'])->name('reservas.carrito');
-    Route::post('/reservas/cancelar/{id}', [PagoController::class, 'cancelarReserva'])->name('reservas.cancelar');
+    Route::post('/reservas/cancelar/{id}', [ReservaController::class, 'solicitarCancelacion'])->name('reservas.cancelar');
     
     Route::delete('/reservas/{reserva}', [ReservaController::class, 'destroy'])->name('reservas.destroy');
 
-
+    Route::post('/hoteles/{hotel}/reviews', [HoteleController::class, 'storeReview'])->name('hoteles.reviews.store')->middleware('auth');
     Route::post('/pago', [PagoController::class, 'checkout'])->name('pago.checkout');
     Route::get('/pago/exito', [PagoController::class, 'exito'])->name('pago.exito');
     Route::get('/pago/cancelado', function() {

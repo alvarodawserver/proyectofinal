@@ -34,7 +34,7 @@ class SolicitudReembolsoMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.solicitud-reembolso', // Crearemos esta vista ahora
+            view: 'emails.solicitud_reembolso', // Crearemos esta vista ahora
         );
     }
 }

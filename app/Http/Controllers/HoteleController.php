@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Habitacione;
 use App\Models\Hotele;
 use App\Models\Oferta;
+use App\Models\Reserva;
+use App\Models\Review;
 use App\Models\Servicio;
 use App\Models\Tipo;
 use App\Models\User;
@@ -74,21 +76,34 @@ class HoteleController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, Hotele $hotel) // <--- Añadimos el Request
+    public function show(Request $request, Hotele $hotel)
 {
-    // Mantenemos tu carga de relaciones
+
     $hotel = Hotele::with(['images', 'servicios', 'habitaciones.tipo'])->findOrFail($hotel->id);
+    
     $ratingCount = $hotel->reviews()->count();
     $ratingAverage = $hotel->reviews()->avg('valoracion') ?? 0;
     
-    // 2. Buscamos una review "destacada" (la más reciente de 4 o 5 estrellas)
-    $reviewDestacada = $hotel->reviews()
-        ->with('user:id,name,profile_photo_url') // Solo traemos lo que necesitamos del usuario
-        ->where('valoracion', '>=', 4)
-        ->latest()
-        ->first();
 
-    // --- LÓGICA DE OFERTAS ---
+    $allReviews = $hotel->reviews()
+        ->with('user:id,name,profile_photo_url')
+        ->latest()
+        ->get();
+
+    $reviewDestacada = $allReviews->where('valoracion', '>=', 4)->first();
+
+
+    $reservaParaOpinar = null;
+    if (Auth::check()) {
+        $reservaParaOpinar = Reserva::where('user_id', Auth::id())
+            ->whereHas('habitaciones', function($q) use ($hotel) {
+                $q->where('hotele_id', $hotel->id);
+            })
+            ->where('estado', 'pagada')
+            ->whereDoesntHave('review') 
+            ->first();
+    }
+
     $ofertaAplicada = null;
     if ($request->has('oferta_id')) {
         $ofertaAplicada = Oferta::where('id', $request->oferta_id)
@@ -99,15 +114,18 @@ class HoteleController extends Controller
             ->first();
     }
 
+    // 4. Retornamos los datos a Inertia
     return Inertia::render('Hoteles/show', [
         'hotel' => $hotel,
-        'oferta_aplicada' => $ofertaAplicada, // <--- Pasamos la oferta (será null si no hay)
+        'oferta_aplicada' => $ofertaAplicada,
         'rating' => [
             'average' => round($ratingAverage, 1),
             'count' => $ratingCount,
             'description' => $this->getRatingDescription($ratingAverage),
         ],
         'review_destacada' => $reviewDestacada,
+        'all_reviews' => $allReviews,
+        'eligida_reserva_id' => $reservaParaOpinar ? $reservaParaOpinar->id : null,
         'images' => $hotel->images->map(fn($img) => asset('storage/' . $img->path)),
         'servicios' => $hotel->servicios->map(fn($srv) => [
             'id' => $srv->id,
@@ -240,4 +258,40 @@ class HoteleController extends Controller
             default         => 'Mejorable',
         };
     }
+
+
+    public function storeReview(Request $request, Hotele $hotel)
+{
+    // 1. Validamos los datos mínimos que entran del formulario
+    $request->validate([
+        'reserva_id' => 'required|exists:reservas,id',
+        'valoracion' => 'required|integer|min:1|max:5',
+        'comentario' => 'required|string|min:5|max:1000', // Forzamos un mínimo para evitar comentarios vacíos
+    ]);
+
+    
+    $reservaValida = Reserva::where('id', $request->reserva_id)
+        ->where('user_id', Auth::id())
+        ->where('estado', 'pagada')
+        ->whereHas('habitaciones', function($query) use ($hotel) {
+            $query->where('hotel_id', $hotel->id);
+        })
+        ->whereDoesntHave('review') // Relación en tu modelo Reserva (hasOne Review)
+        ->first();
+
+    if (!$reservaValida) {
+        return redirect()->back()->withErrors([
+            'comentario' => 'No tienes autorización para dejar una reseña sobre este alojamiento o ya has valorado esta estancia.'
+        ]);
+    }
+    Review::create([
+        'reserva_id' => $reservaValida->id,
+        'hotel_id'   => $hotel->id,
+        'user_id'    => Auth::id(),
+        'valoracion' => $request->valoracion,
+        'comentario' => $request->comentario,
+    ]);
+
+    return redirect()->back()->with('success', '¡Tu opinión ha sido publicada con éxito!');
+}
 }

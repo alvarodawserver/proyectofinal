@@ -19,7 +19,7 @@ class ReservaController extends Controller
     {
         $reservas = Reserva::with(['habitaciones.hotele', 'habitaciones.tipo'])
             ->where('user_id', auth()->id())
-            ->whereIn('estado', ['pagada', 'cancelada', 'reembolso_pendiente'])
+            ->whereIn('estado', ['pagada', 'cancelada', 'reembolso_pendiente','reembolsado'])
             ->orderBy('fecha_entrada', 'desc')
             ->get();
 
@@ -150,8 +150,10 @@ class ReservaController extends Controller
      * Gestiona la solicitud de cancelación calculando el reembolso manual 
      * en base a las políticas del hotel y enviando una alerta por email.
      */
-    public function solicitarCancelacion(Reserva $reserva)
+    public function solicitarCancelacion($id)
     {
+        $reserva = Reserva::findOrFail($id);
+
         if ($reserva->user_id !== Auth::id()) {
             abort(403);
         }

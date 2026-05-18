@@ -14,8 +14,8 @@ export default function MisReservas({ reservas, errors }: Props) {
         if (confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {    
             router.post(`/reservas/cancelar/${id}`, {}, {
                 onSuccess: () => {
-                    window.location.reload(); 
-                },
+                alert("Tu solicitud de cancelación se ha procesado correctamente.");
+            },
                 onError: (errors) => {
                     alert("Hubo un error al cancelar");
                     console.error(errors);
