@@ -266,7 +266,7 @@ class HoteleController extends Controller
     $request->validate([
         'reserva_id' => 'required|exists:reservas,id',
         'valoracion' => 'required|integer|min:1|max:5',
-        'comentario' => 'required|string|min:5|max:1000', // Forzamos un mínimo para evitar comentarios vacíos
+        'comentario' => 'required|string|min:5|max:1000', 
     ]);
 
     
@@ -274,7 +274,7 @@ class HoteleController extends Controller
         ->where('user_id', Auth::id())
         ->where('estado', 'pagada')
         ->whereHas('habitaciones', function($query) use ($hotel) {
-            $query->where('hotel_id', $hotel->id);
+            $query->where('hotele_id', $hotel->id);
         })
         ->whereDoesntHave('review') // Relación en tu modelo Reserva (hasOne Review)
         ->first();
@@ -286,8 +286,8 @@ class HoteleController extends Controller
     }
     Review::create([
         'reserva_id' => $reservaValida->id,
-        'hotel_id'   => $hotel->id,
-        'user_id'    => Auth::id(),
+        'hotele_id'   => $hotel->id,
+        'user_id'    => Auth::user()->id,
         'valoracion' => $request->valoracion,
         'comentario' => $request->comentario,
     ]);

@@ -10,7 +10,9 @@ class Review extends Model
     protected $fillable = [
         'reserva_id',
         'valoracion',
-        'comentario'
+        'comentario',
+        'user_id',
+        'hotele_id',
     ];
 
     public function reserva()

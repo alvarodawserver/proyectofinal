@@ -173,7 +173,7 @@ export default function ReviewsSection({ hotelId, reviews = [], eligida_reserva_
                                     {/* Cabecera del comentario (Usuario) */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <img
-                                            src={rev.user.profile_photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(rev.user.name)}&background=008080&color=fff`}
+                                            src="{{ $review->user->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($review->user->name) . '&background=random' }}"
                                             alt="Avatar"
                                             style={{ borderRadius: '50%', width: '40px', height: '40px', objectFit: 'cover' }}
                                         />
@@ -207,7 +207,6 @@ export default function ReviewsSection({ hotelId, reviews = [], eligida_reserva_
     );
 }
 
-// --- ESTILOS ---
 const formBoxStyle = { backgroundColor: '#f0f7f7', padding: '20px', borderRadius: '16px', border: '1px solid #b3d9d9' };
 const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: 'bold' as const, marginBottom: '5px', color: '#555' };
 const textareaStyle = { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ccc', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'vertical' as const };

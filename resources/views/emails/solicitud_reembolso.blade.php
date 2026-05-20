@@ -14,7 +14,7 @@
         <p>El cliente ha solicitado cancelar su reserva. Al hacerse con <strong>{{ $diasAntelacion }} días</strong> de antelación, se ha aplicado la política del hotel.</p>
         
         <div class="price-box">
-            <p><strong>Hotel:</strong> {{ $reserva->hotel->nombre_hotel }}</p>
+            <p><strong>Hotel:</strong> {{ $reserva?->hotel->nombre_hotel }}</p>
             <p><strong>ID de Reserva:</strong> #{{ $reserva->id }}</p>
             <p><strong>Precio Total Pagado:</strong> {{ $reserva->precio }}€</p>
             <hr>

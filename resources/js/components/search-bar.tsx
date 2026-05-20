@@ -57,7 +57,7 @@ export default function SearchBar() {
     const selectSuggestion = (label: string) => {
     setDestination(label);
     setIsOpen(false);
-
+        
     router.get('/busqueda', {
         lugar: label, // Enviamos el "Sevilla - Oasis..."
         entrada: dates.checkIn,
@@ -74,8 +74,7 @@ export default function SearchBar() {
                 
                 <div style={{ display: 'flex', gap: '5px' }}>
                     <Link href="/" style={getTabStyle(isActive('/'))}>🏨 Hoteles</Link>
-                    <Link href="/vehiculos" style={getTabStyle(isActive('/vehiculos'))}>🚗 Vehículos</Link>
-                    <Link href="/actividades" style={getTabStyle(isActive('/actividades'))}>⛰️ Actividades</Link>
+                    <Link href="/experiencias" style={getTabStyle(isActive('/experiencias'))}>⛰️ Actividades</Link>
                 </div>
 
                 <div style={searchBarWrapper}>

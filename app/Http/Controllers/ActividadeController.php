@@ -82,4 +82,11 @@ class ActividadeController extends Controller
 
         return redirect()->back();
     }
+
+    public function publicIndex()
+    {
+        return Inertia::render('Actividades/public-index', [
+            'actividades' => Actividade::all(),
+        ]);
+    }
 }

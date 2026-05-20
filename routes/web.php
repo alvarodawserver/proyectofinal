@@ -54,11 +54,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/hoteles/{hotel}/reviews', [HoteleController::class, 'storeReview'])->name('hoteles.reviews.store')->middleware('auth');
     Route::post('/pago', [PagoController::class, 'checkout'])->name('pago.checkout');
-    Route::get('/pago/exito', [PagoController::class, 'exito'])->name('pago.exito');
+    Route::get('/pago/exito', [PagoController::class, 'exito'])->name('pago.exito'); 
     Route::get('/pago/cancelado', function() {
         return redirect()->route('reservas.carrito')->with('error', 'El pago fue cancelado.');
     })->name('pago.cancelado');
     Route::get('/mis-reservas', [ReservaController::class, 'index'])->name('reservas.index');
+    Route::get('/experiencias', [ActividadeController::class, 'publicIndex'])->name('experiencias.index');
 });
 
 
