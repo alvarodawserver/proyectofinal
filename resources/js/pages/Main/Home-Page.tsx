@@ -6,44 +6,46 @@ import { Settings } from 'lucide-react';
 import { Link } from '@inertiajs/react';
 import SearchBar from '@/components/search-bar';
 
-interface Hotele{
-  id: number;
-  nombre: string;
-  ciudad: string;
-  categoria: string;
-  imagen: string | null;
-  precio_min: number;
-  rating?: number;
+interface Hotele {
+    id: number;
+    nombre: string;
+    ciudad: string;
+    categoria: string;
+    imagen: string | null;
+    precio_final: number;
+    precio_original: number;
+    rating?: number;
+    reviews_count?:number;
 }
 
-interface Oferta{
-  hotel:{
-    images:{path:string, is_primary:boolean};
-    nombre_hotel: string;
-  }
-  id: number;
-  nombre: string;
-  hotel_id: number;
-  descuento_porcentaje: number;
-  fecha_inicio: string;
-  fecha_fin: string;
-  activa: boolean;
+interface Oferta {
+    hotel: {
+        images: { path: string, is_primary: boolean };
+        nombre_hotel: string;
+    }
+    id: number;
+    nombre: string;
+    hotel_id: number;
+    descuento_porcentaje: number;
+    fecha_inicio: string;
+    fecha_fin: string;
+    activa: boolean;
 }
 
-interface Tipo{
-  id: number;
-  nombre: string;
+interface Tipo {
+    id: number;
+    nombre: string;
 }
 
 
 interface HomePageProps {
-  hoteles: Hotele[];
-  ofertas: Oferta[];
+    hoteles: Hotele[];
+    ofertas: Oferta[];
 }
 
 export default function HomePage({ hoteles, ofertas }: HomePageProps) {
     const { auth } = usePage().props as any;
-  return (
+    return (
         <div style={{ backgroundColor: '#f4f1ea', minHeight: '100vh' }}>
             <Header />
             <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
@@ -51,13 +53,13 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
                 {ofertas.length > 0 && (
                     <section style={{ marginBottom: '50px' }}>
                         <h2 style={{ color: '#8B4513', borderBottom: '2px solid #D2B48C', display: 'inline-block' }}>
-                             Ofertas Exclusivas
+                            Ofertas Exclusivas
                         </h2>
                         <div style={ofertasContainerStyle}>
                             {ofertas.map(oferta => (
                                 <div key={oferta.id} style={ofertaCardStyle}>
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: 0, color: 'black'}}>{oferta.nombre}</h4>
+                                        <h4 style={{ margin: 0, color: 'black' }}>{oferta.nombre}</h4>
                                         <p style={{ fontSize: '0.9rem', color: '#666' }}>En {oferta.hotel.nombre_hotel}</p>
                                         <span style={discountBadgeStyle}>-{oferta.descuento_porcentaje}%</span>
                                     </div>
@@ -70,21 +72,35 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
                     </section>
                 )}
 
-                <h2 style={{ color: '#008080', marginBottom: '25px', borderBottom: '2px solid #008080', display: 'inline-block'}}>Explora nuestros hoteles</h2>
+                <h2 style={{ color: '#008080', marginBottom: '25px', borderBottom: '2px solid #008080', display: 'inline-block' }}>Explora nuestros hoteles</h2>
                 <div style={hotelGridStyle}>
-                    {hoteles.map(hotel => (
-                        <Link href={`/hoteles/${hotel.id}/show`}>
-                            <HotelCard 
+                    {hoteles.map(hotel => {
+                        const tieneOferta = hotel.precio_final < hotel.precio_original;
+                        const porcentajeDescuento = tieneOferta
+                            ? Math.round(((hotel.precio_original - hotel.precio_final) / hotel.precio_original) * 100)
+                            : 0;
+
+                        return (
+                            <Link
                                 key={hotel.id}
-                                nombre={hotel.nombre}
-                                ciudad={hotel.ciudad}
-                                categoria={hotel.categoria}
-                                imagen={hotel.imagen ? `/storage/${hotel.imagen}` : null}
-                                precio_minimo={hotel.precio_min}
-                                rating={hotel.rating || 0}
-                            />
-                        </Link>
-                    ))}
+                                href={`/hoteles/${hotel.id}/show`}
+                                style={{ textDecoration: 'none', color: 'inherit', position: 'relative' }}
+                            >
+                                <HotelCard
+                                    nombre={hotel.nombre}
+                                    ciudad={hotel.ciudad}
+                                    categoria={hotel.categoria}
+                                    imagen={hotel.imagen ? (hotel.imagen.startsWith('http') ? hotel.imagen : `/storage/${hotel.imagen}`) : null}
+                                    precio_final={hotel.precio_final}
+                                    precio_original={hotel.precio_original}
+                                    tiene_oferta={tieneOferta}
+                                    descuento={porcentajeDescuento}
+                                    reviews_avg={hotel.rating || 0}
+                                    reviews_count={hotel.reviews_count || 0} 
+                                />
+                            </Link>
+                        );
+                    })}
                 </div>
             </main>
             <Footer />

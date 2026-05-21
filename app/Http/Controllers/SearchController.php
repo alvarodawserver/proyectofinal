@@ -22,7 +22,6 @@ class SearchController extends Controller
             ];
         });
 
-        // 1. Iniciamos la consulta con las relaciones necesarias y ofertas vigentes
         $query = Hotele::query()->with([
             'images',
             'servicios',
@@ -47,7 +46,6 @@ class SearchController extends Controller
             ->whereColumn('habitaciones.hotele_id', 'hoteles.id')
         ]);
 
-        // 2. Filtro por lugar (Ciudad o Nombre de Hotel)
         $query->when($request->lugar, function ($q) use ($request) {
             $lugar = $request->lugar;
             if (str_contains($lugar, ' - ')) {
@@ -64,37 +62,30 @@ class SearchController extends Controller
             }
         });
 
-        // 3. Filtro por Categoría
         $query->when($request->categoria_id, function ($q) use ($request) {
             $q->whereHas('categorias', function ($c) use ($request) {
                 $c->where('categorias.id', $request->categoria_id);
             });
         });
 
-        // 4. FILTRO CRÍTICO: Disponibilidad y Capacidad
-        // Buscamos hoteles que tengan al menos una habitación que cumpla TODO
         $query->whereHas('habitaciones', function ($qHab) use ($request) {
             
-            // Filtro de Capacidad (Personas)
             $qHab->when($request->personas, function ($q) use ($request) {
                 $q->whereHas('tipo', function ($t) use ($request) {
                     $t->where('capacidad', '>=', $request->personas);
                 });
             });
 
-            // Filtro de Precio Máximo
             $qHab->when($request->precio_max, function ($q) use ($request) {
                 $q->whereHas('tipo', function ($t) use ($request) {
                     $t->where('tipos.precio_base', '<=', $request->precio_max);
                 });
             });
 
-            // Filtro de Fechas (Disponibilidad Real)
             $qHab->when($request->entrada && $request->salida, function ($q) use ($request) {
                 $q->whereDoesntHave('reservas', function ($qRes) use ($request) {
-                    $qRes->where('estado', 'pagada') // Solo bloquean las pagadas
+                    $qRes->where('estado', 'pagada')
                          ->where(function ($sub) use ($request) {
-                             // Cruce de fechas: entrada < salida_reserva Y salida > entrada_reserva
                              $sub->where('fecha_entrada', '<', $request->salida)
                                  ->where('fecha_salida', '>', $request->entrada);
                          });
@@ -102,8 +93,37 @@ class SearchController extends Controller
             });
         });
 
-        // 5. Ordenación
-        if ($request->order === 'precio_asc') {
+        $query->when($request->perfil, function ($q) use ($request) {
+            $perfil = strtolower($request->perfil);
+
+            if ($perfil === 'familiar') {
+                $q->where(function ($sub) {
+                    $sub->whereHas('habitaciones.tipo', function($t) {
+                        $t->where('capacidad', '>=', 3);
+                    })->orWhereHas('servicios', function($s) {
+                        $s->where('servicios.nombre_servicio', 'Piscina'); 
+                    });
+                });
+            } elseif ($perfil === 'romantico') {
+                $q->whereHas('servicios', function($s) {
+                    $s->where('servicios.nombre_servicio', 'Spa y Bienestar'); 
+                });
+            } elseif ($perfil === 'negocios') {
+                $q->whereHas('servicios', function($s) {
+                    $s->whereIn('servicios.nombre_servicio', ['Wi-Fi Gratuito', 'Recepción 24h']); 
+                });
+            } elseif ($perfil === 'relajante') {
+                $q->whereHas('servicios', function($s) {
+                    $s->whereIn('servicios.nombre_servicio', ['Spa y Bienestar', 'Piscina']); 
+                });
+            }
+        });
+        $query->when($request->compare_ids, function ($q) use ($request) {
+            $q->whereIn('hoteles.id', $request->compare_ids);
+        });
+
+
+        if ($request->order === 'precio_asc' || $request->perfil === 'economico') {
             $query->orderBy('precio_min', 'asc');
         } elseif ($request->order === 'precio_desc') {
             $query->orderBy('precio_min', 'desc');
@@ -120,6 +140,7 @@ class SearchController extends Controller
 
     public function sugerencias(Request $request)
     {
+        // ... (Tu código de sugerencias se queda igual) ...
         $term = $request->input('q');
 
         if (!$term || strlen($term) < 1) {

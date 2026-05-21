@@ -39,9 +39,7 @@ class Hotele extends Model
     }
     public function reviews()
 {
-    return  Review::whereHas('reserva.habitaciones', function ($query) {
-        $query->where('hotele_id', $this->id);
-    });
+    return $this->hasMany(Review::class, 'hotele_id');
 }
 
 
@@ -94,6 +92,14 @@ class Hotele extends Model
     public function actividades()
     {
         return $this->belongsToMany(Actividade::class, 'activity_hotel', 'hotel_id', 'activity_id');
+    }
+
+    public function imagenesGaleria() {
+    return $this->hasMany(Image::class)->where('is_primary', false);
+    }
+
+    public function imagenPrincipal() {
+        return $this->hasOne(Image::class)->where('is_primary', true);
     }
 
 }

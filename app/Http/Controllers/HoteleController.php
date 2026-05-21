@@ -22,9 +22,7 @@ class HoteleController extends Controller
      */
     public function index()
     {
-
        $user = Auth::user();
-
         
         if ($user->hasRole('admin') || $user->role === 'admin') {
             $hoteles = Hotele::withCount('habitaciones')->get();
@@ -71,85 +69,102 @@ class HoteleController extends Controller
             ]),
             ...$validated
         ]);
-        return redirect()->back()->with('success', 'Hotel creado exitosamente.');}
+        return redirect()->back()->with('success', 'Hotel creado exitosamente.');
+    }
 
     /**
      * Display the specified resource.
      */
     public function show(Request $request, Hotele $hotel)
-{
+    {
+        $hotel = Hotele::with(['images', 'servicios', 'habitaciones.tipo'])->findOrFail($hotel->id);
+        
+        $ratingCount = $hotel->reviews()->count();
+        $ratingAverage = $hotel->reviews()->avg('valoracion') ?? 0;
+        
+        $allReviews = $hotel->reviews()
+            ->with('user:id,name,profile_photo_url')
+            ->latest()
+            ->get();
 
-    $hotel = Hotele::with(['images', 'servicios', 'habitaciones.tipo'])->findOrFail($hotel->id);
-    
-    $ratingCount = $hotel->reviews()->count();
-    $ratingAverage = $hotel->reviews()->avg('valoracion') ?? 0;
-    
+        $reviewDestacada = $allReviews->where('valoracion', '>=', 4)->first();
 
-    $allReviews = $hotel->reviews()
-        ->with('user:id,name,profile_photo_url')
-        ->latest()
-        ->get();
+        $reservaParaOpinar = null;
+        if (Auth::check()) {
+            $reservaParaOpinar = Reserva::where('user_id', Auth::id())
+                ->whereHas('habitaciones', function($q) use ($hotel) {
+                    $q->where('hotele_id', $hotel->id);
+                })
+                ->where('estado', 'pagada')
+                ->whereDoesntHave('review') 
+                ->first();
+        }
 
-    $reviewDestacada = $allReviews->where('valoracion', '>=', 4)->first();
+        $ofertaAplicada = null;
+        if ($request->has('oferta_id')) {
+            $ofertaAplicada = Oferta::where('id', $request->oferta_id)
+                ->where('hotel_id', $hotel->id)
+                ->where('activa', true)
+                ->where('fecha_inicio', '<=', now())
+                ->where('fecha_fin', '>=', now())
+                ->first();
+        }
 
-
-    $reservaParaOpinar = null;
-    if (Auth::check()) {
-        $reservaParaOpinar = Reserva::where('user_id', Auth::id())
-            ->whereHas('habitaciones', function($q) use ($hotel) {
-                $q->where('hotele_id', $hotel->id);
-            })
-            ->where('estado', 'pagada')
-            ->whereDoesntHave('review') 
-            ->first();
+        // 4. Retornamos los datos a Inertia (Aplicado filtro de codificación a servicios)
+        return Inertia::render('Hoteles/show', [
+            'hotel' => $hotel,
+            'oferta_aplicada' => $ofertaAplicada,
+            'rating' => [
+                'average' => round($ratingAverage, 1),
+                'count' => $ratingCount,
+                'description' => $this->getRatingDescription($ratingAverage),
+            ],
+            'review_destacada' => $reviewDestacada,
+            'all_reviews' => $allReviews,
+            'eligida_reserva_id' => $reservaParaOpinar ? $reservaParaOpinar->id : null,
+            'images' => $hotel->images->map(fn($img) => asset('storage/' . $img->path)),
+            'servicios' => $hotel->servicios->map(fn($srv) => [
+                'id' => $srv->id,
+                'nombre' => mb_check_encoding($srv->nombre_servicio, 'UTF-8')
+                    ? $srv->nombre_servicio
+                    : mb_convert_encoding($srv->nombre_servicio, 'UTF-8', 'ISO-8859-1'),
+                'icono' => $srv->icono, 
+            ])
+        ]);
     }
-
-    $ofertaAplicada = null;
-    if ($request->has('oferta_id')) {
-        $ofertaAplicada = Oferta::where('id', $request->oferta_id)
-            ->where('hotel_id', $hotel->id)
-            ->where('activa', true)
-            ->where('fecha_inicio', '<=', now())
-            ->where('fecha_fin', '>=', now())
-            ->first();
-    }
-
-    // 4. Retornamos los datos a Inertia
-    return Inertia::render('Hoteles/show', [
-        'hotel' => $hotel,
-        'oferta_aplicada' => $ofertaAplicada,
-        'rating' => [
-            'average' => round($ratingAverage, 1),
-            'count' => $ratingCount,
-            'description' => $this->getRatingDescription($ratingAverage),
-        ],
-        'review_destacada' => $reviewDestacada,
-        'all_reviews' => $allReviews,
-        'eligida_reserva_id' => $reservaParaOpinar ? $reservaParaOpinar->id : null,
-        'images' => $hotel->images->map(fn($img) => asset('storage/' . $img->path)),
-        'servicios' => $hotel->servicios->map(fn($srv) => [
-            'id' => $srv->id,
-            'nombre' => $srv->nombre_servicio,
-            'icono' => $srv->icono, 
-        ])
-    ]);
-}
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(Hotele $hotele)
     {
-        
-
         $propietarios = User::role('propietario')->get(['id', 'name']);
-        $servicios = Servicio::all(['id', 'nombre_servicio']);
+        
+        // APLICADO: Filtro de codificación para el listado general de servicios
+        $servicios = Servicio::all(['id', 'nombre_servicio'])->map(function ($servicio) {
+            return [
+                'id' => $servicio->id,
+                'nombre_servicio' => mb_check_encoding($servicio->nombre_servicio, 'UTF-8')
+                    ? $servicio->nombre_servicio
+                    : mb_convert_encoding($servicio->nombre_servicio, 'UTF-8', 'ISO-8859-1'),
+            ];
+        });
 
         $hotele->load('servicios'); 
+        
+        // APLICADO: Por si en la vista de Vue/Inertia usas también los nombres del hotel cargado
+        $hotele->servicios->transform(function ($srv) {
+            $srv->nombre_servicio = mb_check_encoding($srv->nombre_servicio, 'UTF-8')
+                ? $srv->nombre_servicio
+                : mb_convert_encoding($srv->nombre_servicio, 'UTF-8', 'ISO-8859-1');
+            return $srv;
+        });
+
         $hotele->servicios_ids = $hotele->servicios->pluck('id');
         $tiposHabitacion = Tipo::withCount(['habitaciones' => function ($query) use ($hotele) {
-        $query->where('hotele_id', $hotele->id);
-    }])->get(['id', 'tipo_habitacion', 'precio']);
+            $query->where('hotele_id', $hotele->id);
+        }])->get(['id', 'tipo_habitacion', 'precio']);
+        
         $hotele->imagen_url = $hotele->imagen_principal 
             ? asset('storage/' . $hotele->imagen_principal) 
             : null;
@@ -167,8 +182,6 @@ class HoteleController extends Controller
      */
     public function update(Request $request, Hotele $hotele)
     {
-        // BLINDAJE: También protegemos el método que procesa el formulario
-
         $validated = $request->validate([
             'nombre_hotel' => 'required|string|max:255',
             'propietario_id' => 'nullable|exists:users,id',
@@ -182,16 +195,47 @@ class HoteleController extends Controller
             'longitud' => 'required|numeric',
             'descripcion' => 'nullable|string',
             'imagen_principal' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'imagenes_adicionales' => 'nullable|array',
+            'imagenes_adicionales.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
+            'imagenes_eliminadas' => 'nullable|array',
+            'imagenes_eliminadas.*' => 'integer|exists:images,id', 
             'servicios' => 'nullable|array',
             'servicios.*' => 'exists:servicios,id', 
         ]);
 
+
         if ($request->hasFile('imagen_principal')) {
-            if ($hotele->imagen_principal) {
-                Storage::disk('public')->delete($hotele->imagen_principal);
+            $oldPrimary = $hotele->images()->where('is_primary', true)->first();
+            if ($oldPrimary) {
+                Storage::disk('public')->delete($oldPrimary->path); 
+                $oldPrimary->delete();
             }
+
             $path = $request->file('imagen_principal')->store('hoteles', 'public');
-            $validated['imagen_principal'] = $path;
+            
+            $hotele->images()->create([
+                'path' => $path,
+                'is_primary' => true
+            ]);
+        }
+
+        if ($request->filled('imagenes_eliminadas')) {
+            $imagenesParaBorrar = $hotele->images()->whereIn('id', $request->input('imagenes_eliminadas'))->get();
+            foreach ($imagenesParaBorrar as $img) {
+                Storage::disk('public')->delete($img->path); // Borra el archivo físico
+                $img->delete(); // Borra el registro en BD
+            }
+        }
+
+        if ($request->hasFile('imagenes_adicionales')) {
+            foreach ($request->file('imagenes_adicionales') as $file) {
+                $path = $file->store('hoteles', 'public');
+                
+                $hotele->images()->create([
+                    'path' => $path,
+                    'is_primary' => false
+                ]);
+            }
         }
 
         $hotele->update($validated);
@@ -210,37 +254,38 @@ class HoteleController extends Controller
     }
 
     public function generarHabitacionesMasa(Request $request)
-{
-    // Validación de rol
-    if (!auth()->user()->hasRole('admin') && auth()->user()->role !== 'admin') {
-        abort(403, 'No autorizado.');
+    {
+        // Validación de rol
+        if (!auth()->user()->hasRole('admin') && auth()->user()->role !== 'admin') {
+            abort(403, 'No autorizado.');
+        }
+
+        $validated = $request->validate([
+            'hotele_id'       => 'required|exists:hoteles,id', 
+            'tipo_habitacion' => 'required|exists:tipos,id',   
+            'cantidad'        => 'required|integer|min:1|max:150',
+            'numero_inicio'   => 'required|integer|min:1',
+        ]);
+
+        $habitaciones = [];
+        $numeroActual = $validated['numero_inicio'];
+
+        for ($i = 0; $i < $validated['cantidad']; $i++) {
+            $habitaciones[] = [
+                'num_habitacion'  => $numeroActual,                 
+                'tipo_habitacion' => $validated['tipo_habitacion'], 
+                'hotele_id'       => $validated['hotele_id'],    
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ];
+            $numeroActual++;
+        }
+
+        Habitacione::insert($habitaciones);
+
+        return redirect()->back()->with('success', "Se han generado {$validated['cantidad']} habitaciones correctamente.");
     }
 
-    $validated = $request->validate([
-        'hotele_id'       => 'required|exists:hoteles,id', 
-        'tipo_habitacion' => 'required|exists:tipos,id',   
-        'cantidad'        => 'required|integer|min:1|max:150',
-        'numero_inicio'   => 'required|integer|min:1',
-    ]);
-
-    $habitaciones = [];
-    $numeroActual = $validated['numero_inicio'];
-
-    for ($i = 0; $i < $validated['cantidad']; $i++) {
-        $habitaciones[] = [
-            'num_habitacion'  => $numeroActual,                 
-            'tipo_habitacion' => $validated['tipo_habitacion'], 
-            'hotele_id'       => $validated['hotele_id'],    
-            'created_at'      => now(),
-            'updated_at'      => now(),
-        ];
-        $numeroActual++;
-    }
-
-    Habitacione::insert($habitaciones);
-
-    return redirect()->back()->with('success', "Se han generado {$validated['cantidad']} habitaciones correctamente.");
-}
     private function getRatingDescription(float $average): string
     {
         if ($average === 0.0) {
@@ -259,39 +304,38 @@ class HoteleController extends Controller
         };
     }
 
-
     public function storeReview(Request $request, Hotele $hotel)
-{
-    // 1. Validamos los datos mínimos que entran del formulario
-    $request->validate([
-        'reserva_id' => 'required|exists:reservas,id',
-        'valoracion' => 'required|integer|min:1|max:5',
-        'comentario' => 'required|string|min:5|max:1000', 
-    ]);
-
-    
-    $reservaValida = Reserva::where('id', $request->reserva_id)
-        ->where('user_id', Auth::id())
-        ->where('estado', 'pagada')
-        ->whereHas('habitaciones', function($query) use ($hotel) {
-            $query->where('hotele_id', $hotel->id);
-        })
-        ->whereDoesntHave('review') // Relación en tu modelo Reserva (hasOne Review)
-        ->first();
-
-    if (!$reservaValida) {
-        return redirect()->back()->withErrors([
-            'comentario' => 'No tienes autorización para dejar una reseña sobre este alojamiento o ya has valorado esta estancia.'
+    {
+        // 1. Validamos los datos mínimos que entran del formulario
+        $request->validate([
+            'reserva_id' => 'required|exists:reservas,id',
+            'valoracion' => 'required|integer|min:1|max:5',
+            'comentario' => 'required|string|min:5|max:1000', 
         ]);
-    }
-    Review::create([
-        'reserva_id' => $reservaValida->id,
-        'hotele_id'   => $hotel->id,
-        'user_id'    => Auth::user()->id,
-        'valoracion' => $request->valoracion,
-        'comentario' => $request->comentario,
-    ]);
 
-    return redirect()->back()->with('success', '¡Tu opinión ha sido publicada con éxito!');
-}
+        $reservaValida = Reserva::where('id', $request->reserva_id)
+            ->where('user_id', Auth::id())
+            ->where('estado', 'pagada')
+            ->whereHas('habitaciones', function($query) use ($hotel) {
+                $query->where('hotele_id', $hotel->id);
+            })
+            ->whereDoesntHave('review') // Relación en tu modelo Reserva (hasOne Review)
+            ->first();
+
+        if (!$reservaValida) {
+            return redirect()->back()->withErrors([
+                'comentario' => 'No tienes autorización para dejar una reseña sobre este alojamiento o ya has valorado esta estancia.'
+            ]);
+        }
+        
+        Review::create([
+            'reserva_id' => $reservaValida->id,
+            'hotele_id'   => $hotel->id,
+            'user_id'    => Auth::user()->id,
+            'valoracion' => $request->valoracion,
+            'comentario' => $request->comentario,
+        ]);
+
+        return redirect()->back()->with('success', '¡Tu opinión ha sido publicada con éxito!');
+    }
 }

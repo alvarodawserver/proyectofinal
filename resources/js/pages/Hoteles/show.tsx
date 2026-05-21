@@ -4,7 +4,7 @@ import { Link, usePage } from '@inertiajs/react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { useRef, useState } from 'react';
-import { Hotel, Image, Servicio } from '@/types'; // Quitamos Review si no se usa aquí
+import { Hotel, Image, Servicio } from '@/types'; 
 import { DynamicIcon } from '@/components/dynamic-icon';
 import GeneralSection from './Secciones/vista-general';
 import ServicesSection from './Secciones/servicios';
@@ -35,16 +35,18 @@ interface Props {
     reviews: any[];
 }
 
-export default function Show({ hotel, rating, images, servicios, oferta_aplicada, review_destacada,all_reviews, eligida_reserva_id, reviews }: Props) {
+export default function Show({ hotel, rating, images, servicios, oferta_aplicada, review_destacada, all_reviews, eligida_reserva_id, reviews }: Props) {
 
     const [activeTab, setActiveTab] = useState('general');
     const tabsRef = useRef<HTMLDivElement>(null);
+
     const manejarSaltoAComentarios = () => {
         setActiveTab('comentarios');
         setTimeout(() => {
             tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 50);
     };
+
     const calcularPrecio = (precioBase: number) => {
         if (oferta_aplicada) {
             return (precioBase * (1 - oferta_aplicada.descuento_porcentaje / 100)).toFixed(2);
@@ -80,7 +82,8 @@ export default function Show({ hotel, rating, images, servicios, oferta_aplicada
                     </div>
                 )}
 
-                <div style={tabsBarStyle}>
+                {/* Añadida la referencia tabsRef aquí para controlar el scroll */}
+                <div ref={tabsRef} style={tabsBarStyle}>
                     <button onClick={() => setActiveTab('general')} style={getTabStyle('general')}>Vista general</button>
                     <button onClick={() => setActiveTab('precios')} style={getTabStyle('precios')}>Precios</button>
                     <button onClick={() => setActiveTab('servicios')} style={getTabStyle('servicios')}>Servicios</button>
@@ -148,7 +151,7 @@ export default function Show({ hotel, rating, images, servicios, oferta_aplicada
                 {activeTab === 'comentarios' && (
                     <ReviewsSection 
                         hotelId={hotel.id}
-                        reviews={all_reviews || []} // Usa all_reviews y añade salvavidas si viene undefined
+                        reviews={all_reviews || []} 
                         eligida_reserva_id={eligida_reserva_id} 
                     />
                 )}
@@ -157,8 +160,6 @@ export default function Show({ hotel, rating, images, servicios, oferta_aplicada
         </div>
     );
 }
-
-// --- ESTILOS ---
 
 const offerAlertStyle = {
     backgroundColor: '#fff5f5',

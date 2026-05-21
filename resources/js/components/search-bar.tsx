@@ -1,7 +1,7 @@
 // resources/js/Components/SearchBar.tsx
 import { useState, useEffect, useRef } from 'react';
 import { router, usePage, Link } from '@inertiajs/react';
-import { Search, MapPin, Building2 } from 'lucide-react'; // Añadimos iconos para las sugerencias
+import { Search, MapPin, Building2 } from 'lucide-react'; 
 import axios from 'axios';
 
 export default function SearchBar() {
@@ -9,7 +9,7 @@ export default function SearchBar() {
     const [destination, setDestination] = useState('');
     const [dates, setDates] = useState({ checkIn: '', checkOut: '' });
     const [people, setPeople] = useState({ adults: 1, children: 0 });
-
+    const [perfilViaje, setPerfilViaje] = useState('');
 
     const [suggestions, setSuggestions] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +25,6 @@ export default function SearchBar() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    
     useEffect(() => {
         if (destination.length > 0) {
             const delayDebounceFn = setTimeout(() => {
@@ -44,27 +43,38 @@ export default function SearchBar() {
     }, [destination]);
 
     const handleSearch = () => {
-        router.get('/busqueda', {
+        const params: any = {
             lugar: destination,
             entrada: dates.checkIn,
             salida: dates.checkOut,
             personas: people.adults + people.children
-        });
+        };
+
+        if (perfilViaje !== '') {
+            params.perfil = perfilViaje;
+        }
+
+        router.get('/busqueda', params);
         setIsOpen(false);
     };
 
-   
     const selectSuggestion = (label: string) => {
-    setDestination(label);
-    setIsOpen(false);
+        setDestination(label);
+        setIsOpen(false);
         
-    router.get('/busqueda', {
-        lugar: label, // Enviamos el "Sevilla - Oasis..."
-        entrada: dates.checkIn,
-        salida: dates.checkOut,
-        personas: people.adults + people.children
-    });
-};
+        const params: any = {
+            lugar: label, 
+            entrada: dates.checkIn,
+            salida: dates.checkOut,
+            personas: people.adults + people.children
+        };
+
+        if (perfilViaje !== '') {
+            params.perfil = perfilViaje;
+        }
+
+        router.get('/busqueda', params);
+    };
 
     const isActive = (path: string) => url === path || (path === '/' && url === '');
 
@@ -91,7 +101,7 @@ export default function SearchBar() {
                             onFocus={() => destination.length > 0 && setIsOpen(true)}
                         />
 
-                        {/* PANEL DE SUGERENCIAS (Estilo YouTube) */}
+                        {/* PANEL DE SUGERENCIAS */}
                         {isOpen && suggestions.length > 0 && (
                             <div style={suggestionsPanelStyle}>
                                 {suggestions.map((item: any, index) => (
@@ -114,6 +124,7 @@ export default function SearchBar() {
                     </div>
 
                     <div style={secondRowStyle}>
+                        {/* FECHAS */}
                         <div style={{ ...inputGroup, flex: 2 }}>
                             <label style={labelStyle}>Fechas (Entrada - Salida)</label>
                             <div style={{ display: 'flex', gap: '10px' }}>
@@ -122,12 +133,13 @@ export default function SearchBar() {
                             </div>
                         </div>
 
+                        {/* CONTADOR DE PERSONAS CORREGIDO */}
                         <div style={{ ...inputGroup, flex: 1.5 }}>
                             <div style={peopleSelectorStyle}>
                                 <div style={counterGroup}>
                                     <small style={miniLabelStyle}>Adultos</small>
                                     <select 
-                                        style={selectStyle} 
+                                        style={compactSelectStyle} 
                                         value={people.adults} 
                                         onChange={e => setPeople({...people, adults: parseInt(e.target.value)})}
                                     >
@@ -137,7 +149,7 @@ export default function SearchBar() {
                                 <div style={counterGroup}>
                                     <small style={miniLabelStyle}>Niños</small>
                                     <select 
-                                        style={selectStyle} 
+                                        style={compactSelectStyle} 
                                         value={people.children} 
                                         onChange={e => setPeople({...people, children: parseInt(e.target.value)})}
                                     >
@@ -147,6 +159,24 @@ export default function SearchBar() {
                             </div>
                         </div>
 
+                        {/* PERFIL DE VIAJE */}
+                        <div style={{ ...inputGroup, flex: 1.2 }}>
+                            <label style={labelStyle}>Perfil de Viaje</label>
+                            <select 
+                                style={selectStyle}
+                                value={perfilViaje}
+                                onChange={e => setPerfilViaje(e.target.value)}
+                            >
+                                <option value="">Cualquiera</option>
+                                <option value="familiar">Familiar</option>
+                                <option value="romantico">Romántico</option>
+                                <option value="negocios">Negocios</option>
+                                <option value="economico">Económico</option>
+                                <option value="relajante">Relajante</option>
+                            </select>
+                        </div>
+
+                        {/* BOTÓN BUSCAR */}
                         <button onClick={handleSearch} style={searchButtonStyle}>
                             <Search size={22} /> <strong>BUSCAR</strong>
                         </button>
@@ -157,6 +187,7 @@ export default function SearchBar() {
     );
 }
 
+// --- ESTILOS ---
 
 const suggestionsPanelStyle: React.CSSProperties = {
     position: 'absolute',
@@ -200,7 +231,7 @@ const searchBarWrapper = {
 
 const secondRowStyle = {
     display: 'flex',
-    gap: '30px', // Aumentamos el hueco entre grupos
+    gap: '20px', 
     alignItems: 'flex-end',
     flexWrap: 'wrap' as const
 };
@@ -222,38 +253,76 @@ const inputStyle = {
     fontSize: '1rem',
     width: '100%',
     backgroundColor: '#fdfdfd',
-    color: '#333'
+    color: '#333',
+    boxSizing: 'border-box' as const
 };
 
+// Estilo para el select grande (Perfil de viaje)
 const selectStyle = {
     ...inputStyle,
-    padding: '10px 15px',
     cursor: 'pointer',
-    appearance: 'none' as const, // Quita el estilo nativo feo
+    appearance: 'none' as const, 
     backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
     backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 10px center',
+    backgroundPosition: 'right 15px center',
     backgroundSize: '15px',
-    minWidth: '80px'
+    height: '54px' 
 };
 
+// NUEVO: Estilo hiper-compacto optimizado para los selects internos de Adultos/Niños
+const compactSelectStyle = {
+    padding: '6px 25px 6px 10px',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0',
+    fontSize: '0.95rem',
+    backgroundColor: 'white',
+    color: '#333',
+    cursor: 'pointer',
+    appearance: 'none' as const,
+    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 8px center',
+    backgroundSize: '12px',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+};
+
+// Caja contenedora de personas igualada a la altura de los inputs hermanos (54px)
 const peopleSelectorStyle = { 
     display: 'flex', 
-    gap: '20px', 
+    gap: '15px', 
     backgroundColor: '#f4f1ea', 
-    padding: '10px 20px', 
+    padding: '4px 15px', 
     borderRadius: '12px',
-    border: '1px solid #d2b48c' 
+    border: '1px solid #d2b48c',
+    height: '54px', 
+    boxSizing: 'border-box' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%'
 };
 
-const miniLabelStyle = { fontSize: '0.7rem', color: '#8b4513', fontWeight: 'bold', marginBottom: '4px' };
-const counterGroup = { display: 'flex', flexDirection: 'column' as const, flex: 1 };
+const miniLabelStyle = { 
+    fontSize: '0.7rem', 
+    color: '#8b4513', 
+    fontWeight: 'bold', 
+    marginBottom: '2px',
+    textAlign: 'center' as const,
+    lineHeight: '1'
+};
+
+const counterGroup = { 
+    display: 'flex', 
+    flexDirection: 'column' as const, 
+    flex: 1,
+    justifyContent: 'center'
+};
 
 const searchButtonStyle = { 
     backgroundColor: '#008080', 
     color: 'white', 
     border: 'none', 
-    padding: '0 40px', 
+    padding: '0 30px', 
     borderRadius: '12px', 
     cursor: 'pointer',
     display: 'flex',

@@ -1,10 +1,11 @@
+// resources/js/pages/Hoteles/Resultados/resultados.tsx
 import { Link, router } from '@inertiajs/react'; 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import HotelCard from '@/components/hotel-card';
 import SearchBar from '@/components/search-bar';
 import { Hotel, SearchFilters, Categoria } from '@/types';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
     hoteles: Hotel[];
@@ -14,12 +15,22 @@ interface Props {
 
 export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
 
+    const [localPrecioMax, setLocalPrecioMax] = useState(filtros.precio_max || 1000);
+    
+    // Estado para controlar los IDs de los hoteles a comparar
+    const [compareIds, setCompareIds] = useState<number[]>(
+        filtros.compare_ids ? (Array.isArray(filtros.compare_ids) ? filtros.compare_ids.map(Number) : [Number(filtros.compare_ids)]) : []
+    );
 
     const handleFilterChange = (key: string, value: any) => {
         const newFilters = { ...filtros, [key]: value };
         
-        
         Object.keys(newFilters).forEach(k => (newFilters[k] == null || newFilters[k] === '') && delete newFilters[k]);
+
+        if (key !== 'compare_ids' && newFilters.compare_ids) {
+            delete newFilters.compare_ids;
+            setCompareIds([]);
+        }
 
         router.get('/busqueda', newFilters, {
             preserveState: true, 
@@ -27,11 +38,8 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
         });
     };
 
-    const [localPrecioMax, setLocalPrecioMax] = useState(filtros.precio_max || 1000);
-
     const updateQuery = (key: string, value: any) => {
         const newFilters = { ...filtros, [key]: value };
-        
         router.get('/busqueda', newFilters, {
             preserveState: true, 
             preserveScroll: true, 
@@ -41,7 +49,7 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
     };
 
     useEffect(() => {
-        if (localPrecioMax !== filtros.precio_max) {
+        if (localPrecioMax !== (filtros.precio_max || 1000)) {
             const timeoutId = setTimeout(() => {
                 updateQuery('precio_max', localPrecioMax);
             }, 400);
@@ -49,6 +57,27 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
         }
     }, [localPrecioMax]);
 
+    // Función para añadir/quitar hoteles de la comparativa
+    const toggleCompare = (id: number) => {
+        if (compareIds.includes(id)) {
+            setCompareIds(compareIds.filter(i => i !== id));
+        } else {
+            if (compareIds.length >= 3) {
+                alert('Puedes comparar un máximo de 3 hoteles a la vez.');
+                return;
+            }
+            setCompareIds([...compareIds, id]);
+        }
+    };
+
+    // Ejecutar comparativa
+    const ejecutarComparativa = () => {
+        if (compareIds.length < 2) {
+            alert('Selecciona al menos 2 hoteles para comparar.');
+            return;
+        }
+        handleFilterChange('compare_ids', compareIds);
+    };
 
     return (
         <div style={pageContainerStyle}>
@@ -62,6 +91,23 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                 <aside style={sidebarStyle}>
                     <h3 style={sectionHeadingStyle}>Filtrar por</h3>
                     
+                    {/* Perfil de viaje */}
+                    <div style={filterGroupStyle}>
+                        <h4 style={subHeadingStyle}>Perfil de Viaje</h4>
+                        <select 
+                            style={selectSortStyle}
+                            value={filtros.perfil || ""}
+                            onChange={(e) => handleFilterChange('perfil', e.target.value)}
+                        >
+                            <option value="">Cualquiera</option>
+                            <option value="familiar">Familiar</option>
+                            <option value="romantico">Romántico</option>
+                            <option value="negocios">Negocios</option>
+                            <option value="economico">Económico</option>
+                            <option value="relajante">Relajante</option>
+                        </select>
+                    </div>
+
                     <div style={filterGroupStyle}>
                         <h4 style={subHeadingStyle}>Categorías</h4>
                         {categorias?.map(cat => (
@@ -69,7 +115,6 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                                 <input 
                                     type="checkbox" 
                                     style={{ marginRight: '10px' }} 
-                                    // Comprobamos si está seleccionada en los filtros
                                     checked={filtros.categoria_id == cat.id}
                                     onChange={(e) => handleFilterChange('categoria_id', e.target.checked ? cat.id : '')}
                                 /> 
@@ -79,14 +124,14 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                     </div>
 
                     <div style={filterGroupStyle}>
-                        <h4 style={subHeadingStyle}>Precio máximo: {filtros.precio_max ? `${filtros.precio_max}€` : 'Sin límite'}</h4>
+                        <h4 style={subHeadingStyle}>Precio máximo: {localPrecioMax}€</h4>
                         <input 
                             type="range" 
                             min="50" 
                             max="1000" 
                             step="10"
-                            value={filtros.precio_max || 1000}
-                            onChange={(e) => handleFilterChange('precio_max', e.target.value)}
+                            value={localPrecioMax}
+                            onChange={(e) => setLocalPrecioMax(Number(e.target.value))}
                             style={{ width: '100%', marginTop: '10px', accentColor: '#008080' }} 
                         />
                         <div style={rangeLabelsStyle}>
@@ -95,10 +140,9 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                         </div>
                     </div>
 
-                    {/* Botón para limpiar filtros */}
                     <button 
                         onClick={() => router.get('/busqueda')}
-                        className="text-sm text-teal-600 font-bold hover:underline"
+                        style={{ color: '#008080', fontWeight: 'bold', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
                     >
                         Limpiar filtros
                     </button>
@@ -107,34 +151,72 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                 {/* RESULTADOS */}
                 <section style={{ flex: 1 }}>
                     <div style={resultsHeaderStyle}>
-                        <h2 style={{ color: '#2C3E50', margin: 0 }}>
-                            Hoteles encontrados ({hoteles.length})
-                        </h2>
-                        <select 
-                            name="sort" 
-                            style={selectSortStyle} 
-                            value={filtros.order || ""}
-                            onChange={(e) => handleFilterChange('order', e.target.value)}
-                        >
-                            <option value="">Recomendados</option>
-                            <option value="precio_asc">Precio: Menor a mayor</option>
-                            <option value="precio_desc">Precio: Mayor a menor</option>
-
-                        </select>
+                        <div>
+                            <h2 style={{ color: '#2C3E50', margin: 0 }}>
+                                {filtros.compare_ids ? 'Comparativa de Hoteles' : `Hoteles encontrados (${hoteles.length})`}
+                            </h2>
+                            {/* Panel de comparativa activo */}
+                            {compareIds.length > 0 && !filtros.compare_ids && (
+                                <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e0ffff', borderRadius: '8px', display: 'inline-block' }}>
+                                    <span style={{ fontWeight: 'bold', color: '#008080' }}>
+                                        {compareIds.length} seleccionado(s) para comparar
+                                    </span>
+                                    <button onClick={ejecutarComparativa} style={compareBtnStyle}>
+                                        Comparar
+                                    </button>
+                                </div>
+                            )}
+                            {filtros.compare_ids && (
+                                <button onClick={() => handleFilterChange('compare_ids', '')} style={{ marginTop: '10px', ...compareBtnStyle, backgroundColor: '#e3342f' }}>
+                                    Volver a la búsqueda
+                                </button>
+                            )}
+                        </div>
+                        
+                        {!filtros.compare_ids && (
+                            <select 
+                                name="sort" 
+                                style={selectSortStyle} 
+                                value={filtros.order || ""}
+                                onChange={(e) => handleFilterChange('order', e.target.value)}
+                            >
+                                <option value="">Recomendados</option>
+                                <option value="precio_asc">Precio: Menor a mayor</option>
+                                <option value="precio_desc">Precio: Mayor a menor</option>
+                            </select>
+                        )}
                     </div>
 
                     <div style={resultsGridStyle}>
                         {hoteles.map(hotel => (
-                            <Link href={`/hoteles/${hotel.id}/show`} key={hotel.id} style={{ textDecoration: 'none' }}>
-                                <HotelCard 
-                                    nombre={hotel.nombre_hotel}
-                                    ciudad={hotel.ciudad}
-                                    categoria={hotel.categoria || "Hotel"}
-                                    imagen={hotel.images && hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
-                                    precio_minimo={hotel.precio_min || 0}
-                                    rating={hotel.rating || 0}
-                                />
-                            </Link>
+                            <div key={hotel.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <Link href={`/hoteles/${hotel.id}/show`} style={{ textDecoration: 'none', flex: 1 }}>
+                                    <HotelCard 
+                                        nombre={hotel.nombre_hotel || (hotel as any).nombre}
+                                        ciudad={hotel.ciudad}
+                                        categoria={hotel.categoria || "Hotel"}
+                                        imagen={hotel.images && hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
+                                        precio_final={hotel.precio_min || 0} 
+                                        precio_original={hotel.precio_min || 0} 
+                                        tiene_oferta={false}
+                                        descuento={0}
+                                        reviews_avg={hotel.rating || 0}
+                                        reviews_count={(hotel as any).reviews_count || 0}
+                                    />
+                                </Link>
+                                
+                                {/* Casilla de comparativa */}
+                                {!filtros.compare_ids && (
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '5px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ccc' }}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={compareIds.includes(hotel.id)}
+                                            onChange={() => toggleCompare(hotel.id)}
+                                        />
+                                        <span style={{ fontSize: '0.9rem', color: '#555' }}>Seleccionar para comparar</span>
+                                    </label>
+                                )}
+                            </div>
                         ))}
                     </div>
                 </section>
@@ -146,46 +228,15 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
 }
 
 // --- ESTILOS ---
-
 const pageContainerStyle = { backgroundColor: '#f4f1ea', minHeight: '100vh', color: '#333' };
-const mainLayout = { maxWidth: '1200px', margin: '40px auto', display: 'flex', gap: '30px', padding: '0 20px' };
-
-const sidebarStyle = {
-    width: '280px',
-    backgroundColor: 'white',
-    padding: '25px',
-    borderRadius: '15px',
-    height: 'fit-content',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-    border: '1px solid #e8e4db'
-};
-
+const mainLayout = { maxWidth: '1200px', margin: '40px auto', display: 'flex', gap: '30px', padding: '0 20px', alignItems: 'flex-start' };
+const sidebarStyle = { width: '280px', backgroundColor: 'white', padding: '25px', borderRadius: '15px', height: 'fit-content', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', border: '1px solid #e8e4db' };
 const sectionHeadingStyle = { color: '#4A3728', marginBottom: '20px', fontSize: '1.2rem' };
 const subHeadingStyle = { color: '#8B4513', marginBottom: '10px', fontSize: '0.9rem', textTransform: 'uppercase' as const };
 const filterGroupStyle = { marginBottom: '25px' };
 const checkboxStyle = { display: 'block', margin: '8px 0', cursor: 'pointer', color: '#555' };
-
-// Nuevo estilo para las etiquetas del rango
-const rangeLabelsStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    fontSize: '0.8rem',
-    color: '#777',
-    marginTop: '5px'
-};
-
-const resultsHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' };
-
-const selectSortStyle = { 
-    padding: '8px 12px', 
-    borderRadius: '8px', 
-    border: '1px solid #ccc',
-    backgroundColor: 'white',
-    color: '#333'
-};
-
-const resultsGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '25px'
-};
+const rangeLabelsStyle = { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#777', marginTop: '5px' };
+const resultsHeaderStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' };
+const selectSortStyle = { padding: '8px 12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: 'white', color: '#333', width: '100%', boxSizing: 'border-box' as const };
+const resultsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' };
+const compareBtnStyle = { marginLeft: '15px', padding: '6px 12px', backgroundColor: '#008080', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' };

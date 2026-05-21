@@ -30,13 +30,19 @@ class MainController extends Controller
                     ->where('activa', true)
                     ->where('fecha_inicio', '<=', $hoy)
                     ->where('fecha_fin', '>=', $hoy)
+                    ->where('fecha_fin', '>=', $hoy)
                     ->first();
 
                 $precioFinal = $precioBase;
                 if ($oferta) {
                     $precioFinal = $precioBase * (1 - ($oferta->descuento_porcentaje / 100));
                 }
-
+                $ratingMedio = DB::table('reviews')
+                    ->where('hotele_id', $hotel->id)
+                    ->avg('valoracion') ?? 0;
+                $totalReviews = DB::table('reviews')
+                    ->where('hotele_id', $hotel->id)
+                    ->count();
                 return [
                     'id' => $hotel->id,
                     'nombre' => $hotel->nombre_hotel,
@@ -48,6 +54,8 @@ class MainController extends Controller
                     'precio_min' => (float)$hotel->precio_min, 
                     'tiene_oferta' => !!$oferta,
                     'descuento' => $oferta ? $oferta->descuento_porcentaje : 0,
+                    'rating' => (float)round($ratingMedio, 1), 
+                    'reviews_count' => $totalReviews,
                 ];
             });
 

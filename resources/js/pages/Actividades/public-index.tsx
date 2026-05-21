@@ -14,14 +14,11 @@ interface Props {
 
 export default function Experiencias({ actividades }: Props) {
     return (
-        // 1. Eliminamos el padding de aquí para que la pantalla sea libre
         <div className="min-h-screen bg-gray-50 flex flex-col">
             
-            {/* 2. El Header ahora toca los bordes de la pantalla de forma natural sin restricciones */}
             <Header />
             <Head title="Nuestras Experiencias" />
-
-            {/* 3. Envolvemos el contenido en un <main> y le pasamos los paddings aquí */}
+            
             <main className="flex-grow py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     
