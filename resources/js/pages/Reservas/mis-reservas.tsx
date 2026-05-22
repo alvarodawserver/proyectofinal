@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head,router} from '@inertiajs/react';
+import { Head,Link,router} from '@inertiajs/react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { Calendar, MapPin, CreditCard, CheckCircle, XCircle } from 'lucide-react';
@@ -96,9 +96,12 @@ export default function MisReservas({ reservas, errors }: Props) {
                                         </div>
                                         
                                         <div className="flex gap-2">
-                                            <button className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                            <a href={`/reservas/${reserva.id}/descargar-factura`} 
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
                                                 Descargar Factura
-                                            </button>
+                                            </a>
                                             {reserva.estado === 'pagada' && (
                                                 <button 
                                                     className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"

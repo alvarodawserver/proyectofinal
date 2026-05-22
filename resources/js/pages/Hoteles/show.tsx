@@ -1,11 +1,10 @@
 // resources/js/Pages/Hoteles/Show.tsx
 
-import { Link, usePage } from '@inertiajs/react';
+import Cookies from 'js-cookie';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Hotel, Image, Servicio } from '@/types'; 
-import { DynamicIcon } from '@/components/dynamic-icon';
 import GeneralSection from './Secciones/vista-general';
 import ServicesSection from './Secciones/servicios';
 import PricingSection from './Secciones/precios';
@@ -47,12 +46,19 @@ export default function Show({ hotel, rating, images, servicios, oferta_aplicada
         }, 50);
     };
 
-    const calcularPrecio = (precioBase: number) => {
-        if (oferta_aplicada) {
-            return (precioBase * (1 - oferta_aplicada.descuento_porcentaje / 100)).toFixed(2);
+   useEffect(() => {
+        if (Cookies.get('cookie_consent') === 'accepted') {
+            const vistosCookie = Cookies.get('hoteles_vistos');
+    
+            let vistos = vistosCookie ? JSON.parse(vistosCookie) : [];
+            
+            if (!vistos.includes(hotel.nombre_hotel)) {
+                vistos.unshift(hotel.nombre_hotel); 
+                vistos = vistos.slice(0, 4); 
+                Cookies.set('hoteles_vistos', JSON.stringify(vistos), { expires: 30 });
+            }
         }
-        return precioBase;
-    };
+    }, [hotel.id]);
 
     const getTabStyle = (tab: string) => ({
         padding: '10px 20px',

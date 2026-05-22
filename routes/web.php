@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActividadeController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ContactoController;
+use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\HoteleController;
 use App\Http\Controllers\MainController;
 use App\Http\Controllers\OfertaController;
@@ -60,6 +61,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('pago.cancelado');
     Route::get('/mis-reservas', [ReservaController::class, 'index'])->name('reservas.index');
     Route::get('/experiencias', [ActividadeController::class, 'publicIndex'])->name('experiencias.index');
+    Route::get('/reservas/{reserva}/descargar-factura', [FacturaController::class, 'descargar'])
+    ->name('reservas.factura');
 });
 
 

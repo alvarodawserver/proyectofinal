@@ -32,6 +32,9 @@ class SearchController extends Controller
                     ->where('fecha_fin', '>=', now());
             }
         ])
+       
+        ->withCount('reviews') 
+        ->withAvg('reviews', 'valoracion')
         ->addSelect(['precio_min' => Habitacione::selectRaw('
                 MIN(tipos.precio_base) * (1 - COALESCE(
                     (SELECT descuento_porcentaje FROM ofertas 
@@ -118,10 +121,10 @@ class SearchController extends Controller
                 });
             }
         });
+        
         $query->when($request->compare_ids, function ($q) use ($request) {
             $q->whereIn('hoteles.id', $request->compare_ids);
         });
-
 
         if ($request->order === 'precio_asc' || $request->perfil === 'economico') {
             $query->orderBy('precio_min', 'asc');
@@ -130,9 +133,9 @@ class SearchController extends Controller
         } else {
             $query->latest();
         }
-
+        
         return Inertia::render('Hoteles/Resultados/resultados', [
-            'hoteles' => $query->get(),
+            'hoteles' => $query->get(), 
             'filtros' => $request->all(),
             'categorias' => $categorias,
         ]);

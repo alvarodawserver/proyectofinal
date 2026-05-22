@@ -17,7 +17,6 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
 
     const [localPrecioMax, setLocalPrecioMax] = useState(filtros.precio_max || 1000);
     
-    // Estado para controlar los IDs de los hoteles a comparar
     const [compareIds, setCompareIds] = useState<number[]>(
         filtros.compare_ids ? (Array.isArray(filtros.compare_ids) ? filtros.compare_ids.map(Number) : [Number(filtros.compare_ids)]) : []
     );
@@ -57,7 +56,6 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
         }
     }, [localPrecioMax]);
 
-    // Función para añadir/quitar hoteles de la comparativa
     const toggleCompare = (id: number) => {
         if (compareIds.includes(id)) {
             setCompareIds(compareIds.filter(i => i !== id));
@@ -70,7 +68,6 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
         }
     };
 
-    // Ejecutar comparativa
     const ejecutarComparativa = () => {
         if (compareIds.length < 2) {
             alert('Selecciona al menos 2 hoteles para comparar.');
@@ -148,7 +145,7 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                     </button>
                 </aside>
 
-                {/* RESULTADOS */}
+                {/* RESULTADOS O TABLA COMPARATIVA */}
                 <section style={{ flex: 1 }}>
                     <div style={resultsHeaderStyle}>
                         <div>
@@ -187,38 +184,127 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
                         )}
                     </div>
 
-                    <div style={resultsGridStyle}>
-                        {hoteles.map(hotel => (
-                            <div key={hotel.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <Link href={`/hoteles/${hotel.id}/show`} style={{ textDecoration: 'none', flex: 1 }}>
-                                    <HotelCard 
-                                        nombre={hotel.nombre_hotel || (hotel as any).nombre}
-                                        ciudad={hotel.ciudad}
-                                        categoria={hotel.categoria || "Hotel"}
-                                        imagen={hotel.images && hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
-                                        precio_final={hotel.precio_min || 0} 
-                                        precio_original={hotel.precio_min || 0} 
-                                        tiene_oferta={false}
-                                        descuento={0}
-                                        reviews_avg={hotel.rating || 0}
-                                        reviews_count={(hotel as any).reviews_count || 0}
-                                    />
-                                </Link>
-                                
-                                {/* Casilla de comparativa */}
-                                {!filtros.compare_ids && (
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '5px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ccc' }}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={compareIds.includes(hotel.id)}
-                                            onChange={() => toggleCompare(hotel.id)}
+                    {/* LÓGICA CONDICIONAL: ¿Mostrar tabla o mostrar grid normal? */}
+                    {filtros.compare_ids ? (
+                        <div style={{ overflowX: 'auto', backgroundColor: 'white', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', border: '1px solid #e8e4db', padding: '20px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ padding: '15px', borderBottom: '2px solid #eee', color: '#4A3728' }}>Características</th>
+                                        {hoteles.map(hotel => (
+                                            <th key={`head-${hotel.id}`} style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'center' }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#2C3E50' }}>{hotel.nombre_hotel || (hotel as any).nombre}</div>
+                                                <div style={{ fontSize: '0.85rem', color: '#777', fontWeight: 'normal' }}>{hotel.ciudad}</div>
+                                                {hotel.images && hotel.images.length > 0 && (
+                                                    <img 
+                                                        src={`/storage/${hotel.images[0].path}`} 
+                                                        alt={hotel.nombre_hotel} 
+                                                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', marginTop: '10px' }}
+                                                    />
+                                                )}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {/* Precio */}
+                                    <tr>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#555' }}>Precio Base</td>
+                                        {hoteles.map(hotel => (
+                                            <td key={`precio-${hotel.id}`} style={{ padding: '15px', borderBottom: '1px solid #eee', textAlign: 'center', fontSize: '1.2rem', color: '#008080', fontWeight: 'bold' }}>
+                                                {hotel.precio_min ? `${hotel.precio_min}€` : 'N/D'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    
+                                    {/* Valoraciones */}
+                                    <tr>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#555' }}>Valoración</td>
+                                        {hoteles.map(hotel => (
+                                            <td key={`rating-${hotel.id}`} style={{ padding: '15px', borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                                                <span style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '1.1rem' }}>★</span> {(hotel as any).reviews_avg_valoracion ? Number((hotel as any).reviews_avg_valoracion).toFixed(1) : 'S/N'} 
+                                                <div style={{ fontSize: '0.8rem', color: '#777' }}>({(hotel as any).reviews_count || 0} opiniones)</div>
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Categorías */}
+                                    <tr>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#555' }}>Categoría</td>
+                                        {hoteles.map(hotel => (
+                                            <td key={`cat-${hotel.id}`} style={{ padding: '15px', borderBottom: '1px solid #eee', textAlign: 'center', fontSize: '0.9rem' }}>
+                                                {(hotel as any).categorias && (hotel as any).categorias.length > 0 
+                                                    ? (hotel as any).categorias.map((c: any) => c.nombre).join(', ') 
+                                                    : 'Estándar'}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Servicios */}
+                                    <tr>
+                                        <td style={{ padding: '15px', borderBottom: '1px solid #eee', fontWeight: 'bold', color: '#555' }}>Servicios Destacados</td>
+                                        {hoteles.map(hotel => (
+                                            <td key={`serv-${hotel.id}`} style={{ padding: '15px', borderBottom: '1px solid #eee', verticalAlign: 'top' }}>
+                                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9rem', color: '#555' }}>
+                                                    {(hotel as any).servicios && (hotel as any).servicios.slice(0, 5).map((serv: any) => (
+                                                        <li key={serv.id} style={{ marginBottom: '5px' }}>{serv.nombre_servicio}</li>
+                                                    ))}
+                                                </ul>
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Botón de acción */}
+                                    <tr>
+                                        <td style={{ padding: '15px', fontWeight: 'bold', color: '#555' }}></td>
+                                        {hoteles.map(hotel => (
+                                            <td key={`btn-${hotel.id}`} style={{ padding: '20px 15px', textAlign: 'center' }}>
+                                                <Link 
+                                                    href={`/hoteles/${hotel.id}/show`} 
+                                                    style={{ display: 'inline-block', backgroundColor: '#008080', color: 'white', padding: '10px 20px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', width: '100%', boxSizing: 'border-box' }}
+                                                >
+                                                    Ver Hotel
+                                                </Link>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div style={resultsGridStyle}>
+                            {hoteles.map(hotel => (
+                                <div key={hotel.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <Link href={`/hoteles/${hotel.id}/show`} style={{ textDecoration: 'none', flex: 1 }}>
+                                        <HotelCard 
+                                            nombre={hotel.nombre_hotel || (hotel as any).nombre}
+                                            ciudad={hotel.ciudad}
+                                            categoria={hotel.categoria || "Hotel"}
+                                            imagen={hotel.images && hotel.images.length > 0 ? `/storage/${hotel.images[0].path}` : null}
+                                            precio_final={hotel.precio_min || 0} 
+                                            precio_original={hotel.precio_min || 0} 
+                                            tiene_oferta={false}
+                                            descuento={0}
+                                            reviews_avg={(hotel as any).reviews_avg_valoracion || hotel.rating || 0}
+                                            reviews_count={(hotel as any).reviews_count || 0}
                                         />
-                                        <span style={{ fontSize: '0.9rem', color: '#555' }}>Seleccionar para comparar</span>
-                                    </label>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                                    </Link>
+                                    
+                                    {/* Casilla de comparativa */}
+                                    {!filtros.compare_ids && (
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '5px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #ccc' }}>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={compareIds.includes(hotel.id)}
+                                                onChange={() => toggleCompare(hotel.id)}
+                                            />
+                                            <span style={{ fontSize: '0.9rem', color: '#555' }}>Seleccionar para comparar</span>
+                                        </label>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </section>
             </main>
             
@@ -227,7 +313,6 @@ export default function ResultsPage({ hoteles, filtros, categorias }: Props) {
     );
 }
 
-// --- ESTILOS ---
 const pageContainerStyle = { backgroundColor: '#f4f1ea', minHeight: '100vh', color: '#333' };
 const mainLayout = { maxWidth: '1200px', margin: '40px auto', display: 'flex', gap: '30px', padding: '0 20px', alignItems: 'flex-start' };
 const sidebarStyle = { width: '280px', backgroundColor: 'white', padding: '25px', borderRadius: '15px', height: 'fit-content', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', border: '1px solid #e8e4db' };
