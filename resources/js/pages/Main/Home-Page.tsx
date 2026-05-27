@@ -113,19 +113,21 @@ export default function HomePage({ hoteles, ofertas }: HomePageProps) {
 
 const hotelGridStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
     gap: '25px'
 };
 
 const ofertasContainerStyle = {
     display: 'flex',
     gap: '20px',
-    overflowX: 'auto' as const,
-    padding: '10px 0'
+    overflowX: 'auto' as const, 
+    flexWrap: 'nowrap' as const,
+    padding: '10px 0',
+    WebkitOverflowScrolling: 'touch' as const 
 };
 
 const ofertaCardStyle = {
-    minWidth: '300px',
+    minWidth: '270px',
     backgroundColor: 'white',
     padding: '20px',
     borderRadius: '12px',

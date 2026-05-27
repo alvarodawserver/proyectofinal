@@ -52,6 +52,8 @@ export interface Hotel {
     rating: number;
     precio_min: number;
     politica_cancelacion: { dias_antes: number; porcentaje: number }[]; 
+    latitud: number;
+    longitud: number;
     images: Image[];
     servicios: Servicio[];
     reviews?: Review[]; 

@@ -1,0 +1,12 @@
+$TTL    604800
+@       IN      SOA     ns1.refugiodelmar.com. admin.refugiodelmar.com. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.refugiodelmar.com.
+ns1     IN      A       172.25.0.53
+@       IN      A       172.25.0.10
+www     IN      A       172.25.0.10

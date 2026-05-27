@@ -17,18 +17,21 @@ export default function RegisterForm({ onSwitchToLogin }: any) {
             <Form {...store.form()} resetOnSuccess={['password', 'password_confirmation']} className="space-y-4 text-left">
                 {({ processing, errors }) => (
                     <>
+                        {/* NOMBRE COMPLETO */}
                         <div className="space-y-2">
                             <Label htmlFor="name" className="text-slate-900 font-bold">Nombre Completo</Label>
                             <Input 
                                 id="name" 
                                 name="name" 
                                 required 
+                                minLength={3} 
                                 placeholder="Nombre y apellidos" 
                                 className="rounded-xl border-gray-300 text-slate-900 placeholder:text-gray-400" 
                             />
                             <InputError message={errors.name} />
                         </div>
 
+                        {/* EMAIL */}
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-slate-900 font-bold">Correo Electrónico</Label>
                             <Input 
@@ -42,6 +45,7 @@ export default function RegisterForm({ onSwitchToLogin }: any) {
                             <InputError message={errors.email} />
                         </div>
 
+                        {/* CONTRASEÑAS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-slate-900 font-bold">Contraseña</Label>
@@ -50,11 +54,20 @@ export default function RegisterForm({ onSwitchToLogin }: any) {
                                     type="password" 
                                     name="password" 
                                     required 
+                                    minLength={8} 
                                     placeholder="8+ caracteres"
                                     className="rounded-xl border-gray-300 text-slate-900 placeholder:text-gray-400" 
+                                    onChange={(e) => {
+                                        // Si cambian la contraseña principal, volvemos a evaluar la confirmación
+                                        const confirmInput = document.getElementById('password_confirmation') as HTMLInputElement;
+                                        if (confirmInput && confirmInput.value) {
+                                            confirmInput.setCustomValidity(confirmInput.value !== e.target.value ? 'Las contraseñas no coinciden' : '');
+                                        }
+                                    }}
                                 />
                                 <InputError message={errors.password} />
                             </div>
+                            
                             <div className="space-y-2">
                                 <Label htmlFor="password_confirmation" className="text-slate-900 font-bold">Confirmar</Label>
                                 <Input 
@@ -64,6 +77,14 @@ export default function RegisterForm({ onSwitchToLogin }: any) {
                                     required 
                                     placeholder="Repite contraseña"
                                     className="rounded-xl border-gray-300 text-slate-900 placeholder:text-gray-400" 
+                                    onChange={(e) => {
+                                        const passwordInput = document.getElementById('password') as HTMLInputElement;
+                                        if (passwordInput && e.target.value !== passwordInput.value) {
+                                            e.target.setCustomValidity('Las contraseñas no coinciden');
+                                        } else {
+                                            e.target.setCustomValidity('');
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>

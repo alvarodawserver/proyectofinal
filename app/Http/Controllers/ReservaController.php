@@ -6,6 +6,7 @@ use App\Models\Habitacione;
 use App\Models\Reserva;
 use App\Models\Oferta;
 use App\Mail\SolicitudReembolsoMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -207,5 +208,35 @@ class ReservaController extends Controller
         );
 
         return redirect()->back()->with('success', 'Tu solicitud de cancelación se ha procesado. Recibirás tu reembolso en tu tarjeta de acuerdo con la política del hotel.');
+    }
+
+    public function descargarQr($id)
+    {
+        $reserva = Reserva::with(['habitaciones.hotele', 'user'])->findOrFail($id);
+
+        $datosCheckIn = json_encode([
+            'reserva_id' => $reserva->id,
+            'cliente' => $reserva->user->name,
+            'hotel' => $reserva->habitaciones[0]->hotele->nombre_hotel ?? 'Refugio del Mar',
+            'fecha_entrada' => $reserva->fecha_entrada,
+            'fecha_salida' => $reserva->fecha_salida,
+            'estado' => $reserva->estado
+        ]);
+
+        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" . urlencode($datosCheckIn);
+        
+        $context = stream_context_create([
+            "ssl" => [
+                "verify_peer" => false,
+                "verify_peer_name" => false,
+            ]
+        ]);
+        
+        $qrImageData = file_get_contents($qrUrl, false, $context);
+        $qrCodeBase64 = base64_encode($qrImageData);
+
+        $pdf = Pdf::loadView('pdf.reserva_qr', compact('reserva', 'qrCodeBase64'));
+        
+        return $pdf->download("Pass_CheckIn_RDN_{$reserva->id}.pdf");
     }
 }

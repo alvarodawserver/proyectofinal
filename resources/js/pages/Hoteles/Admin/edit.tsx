@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Head, useForm, usePage, router, Link } from '@inertiajs/react';
 import React from 'react';
 import * as Icons from 'lucide-react';
 import { CheckCircle2, Layers, Hash, Plus, Trash2, ImagePlus, X } from 'lucide-react';
@@ -25,8 +25,9 @@ interface Hotel {
     latitud: number;
     longitud: number;
     imagen_url?: string;
-    imagenes?: HotelImagen[]; // Galería de fotos existentes
+    imagenes?: HotelImagen[]; 
     servicios_ids: number[];
+    categorias_ids?: number[]; 
     politica_cancelacion?: PoliticaCancelacion[] | string;
 }
 
@@ -39,8 +40,13 @@ interface Servicio {
 interface TipoHabitacion {
     id: number;
     tipo_habitacion: string;
-    precio: number;
+    precio_base: number;
     habitaciones_count: number;
+}
+
+interface Categoria {
+    id: number;
+    nombre: string;
 }
 
 interface Props {
@@ -48,6 +54,7 @@ interface Props {
     propietarios: { id: number; name: string }[];
     servicios: Servicio[];
     tipos_habitacion: TipoHabitacion[]; 
+    categorias: Categoria[];
 }
 
 const DynamicIcon = ({ iconName, isSelected }: { iconName: string | null; isSelected: boolean }) => {
@@ -69,7 +76,7 @@ const DynamicIcon = ({ iconName, isSelected }: { iconName: string | null; isSele
     );
 };
 
-export default function Edit({ hotel, propietarios, servicios, tipos_habitacion }: Props) {
+export default function Edit({ hotel, propietarios, servicios, tipos_habitacion, categorias }: Props) { 
     const { auth } = usePage().props as any;
     
     // Previsualización de la portada principal
@@ -100,9 +107,10 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
         latitud: hotel.latitud ?? '',
         longitud: hotel.longitud ?? '',
         imagen_principal: null as File | null,
-        imagenes_adicionales: [] as File[], // Array de nuevos archivos
-        imagenes_eliminadas: [] as number[], // IDs de fotos del servidor a eliminar
+        imagenes_adicionales: [] as File[],
+        imagenes_eliminadas: [] as number[], 
         servicios: hotel.servicios_ids ?? [],
+        categorias: hotel.categorias_ids ?? [], 
         politica_cancelacion: obtenerPoliticasIniciales(),
     });
 
@@ -142,7 +150,6 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
         setPreviewsAdicionales(nuevasPreviews);
     };
 
-    // Marcar una foto EXISTENTE para borrar en el servidor al guardar
     const removeExistingImage = (id: number) => {
         setImagenesExistentes(prev => prev.filter(img => img.id !== id));
         setData('imagenes_eliminadas', [...data.imagenes_eliminadas, id]);
@@ -162,6 +169,15 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
         if (index > -1) current.splice(index, 1);
         else current.push(id);
         setData('servicios', current);
+    };
+
+    // NUEVO: Función para alternar las categorías seleccionadas de la relación pivote
+    const toggleCategoria = (id: number) => {
+        const current = [...data.categorias];
+        const index = current.indexOf(id);
+        if (index > -1) current.splice(index, 1);
+        else current.push(id);
+        setData('categorias', current);
     };
 
     const addPoliticaTramo = () => {
@@ -216,6 +232,11 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
             <div className="max-w-5xl p-6 pb-20 space-y-8">
                 <h1 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">
                     Configuración de: <span className="text-teal-600">{hotel.nombre_hotel}</span>
+                    <Link href={`/`}>
+                        <button className="ml-4 bg-teal-500 hover:bg-teal-600 text-white py-2 px-4 rounded-lg transition duration-200">
+                            Volver a la Página Principal
+                        </button>
+                    </Link>
                 </h1>
 
                 {/* FORMULARIO PRINCIPAL DEL HOTEL */}
@@ -341,7 +362,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                     <label className="text-xs font-bold text-neutral-500 uppercase">Propietario Responsable</label>
                                     <select
                                         value={data.propietario_id}
-                                        onChange={e => setData('propietario_id', e.target.value)}
+                                        onChange={e => setData('propietario_id', parseInt(e.target.value))}
                                         className="mt-1 block w-full rounded-lg border-neutral-300 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 shadow-sm"
                                     >
                                         <option value="">Selecciona un propietario</option>
@@ -430,7 +451,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                 <input
                                     type="number" step="any"
                                     value={data.latitud}
-                                    onChange={e => setData('latitud', e.target.value)}
+                                    onChange={e => setData('latitud', parseFloat(e.target.value))}
                                     className="mt-1 block w-full rounded-lg border-neutral-300 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100"
                                 />
                                 {errors.latitud && <p className="text-red-500 text-xs mt-1">{errors.latitud}</p>}
@@ -441,7 +462,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                 <input
                                     type="number" step="any"
                                     value={data.longitud}
-                                    onChange={e => setData('longitud', e.target.value)}
+                                    onChange={e => setData('longitud', parseFloat(e.target.value))}
                                     className="mt-1 block w-full rounded-lg border-neutral-300 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100"
                                 />
                                 {errors.longitud && <p className="text-red-500 text-xs mt-1">{errors.longitud}</p>}
@@ -572,6 +593,53 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                         </div>
                         {errors.servicios && <p className="text-red-500 text-xs mt-1">{errors.servicios}</p>}
                     </div>
+                    <div className="bg-white p-8 rounded-xl border border-neutral-200 shadow-sm dark:bg-neutral-900 dark:border-neutral-800">
+                        <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-200 mb-6 flex items-center gap-2">
+                            <span className="w-2 h-6 bg-sky-500 rounded-full inline-block"></span>
+                            Categorías del Hotel
+                        </h2> 
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {categorias && categorias.length > 0 ? (
+                                categorias.map((c) => {
+                                    const isSelected = data.categorias.map(Number).includes(Number(c.id));
+
+                                    return (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => toggleCategoria(c.id)}
+                                            className={`group flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all min-h-[110px] relative ${isSelected
+                                                ? 'border-sky-500 bg-sky-50/50 dark:bg-sky-900/20 shadow-sm'
+                                                : 'border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-800/20 hover:border-neutral-300'
+                                            }`}
+                                        >
+                                            <div className={`mb-2 p-3 rounded-xl transition-colors ${isSelected ? 'bg-white dark:bg-neutral-800 shadow-sm' : 'bg-transparent'}`}>
+                                                <DynamicIcon iconName={c.nombre} isSelected={isSelected} />
+                                            </div>
+
+                                            <span className={`text-[11px] font-bold uppercase tracking-wider text-center px-1 ${isSelected ? 'text-sky-700 dark:text-sky-400' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                                                {c.nombre || `Categoría ${c.id}`}
+                                            </span>
+
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2">
+                                                    <CheckCircle2 className="text-sky-600 fill-white dark:fill-neutral-900" size={18} />
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                <div className="col-span-full p-8 text-center border-2 border-dashed border-neutral-200 rounded-2xl text-neutral-400 italic">
+                                    No hay categorías cargadas. Revisa el controlador.
+                                </div>
+                            )}
+                        </div>
+                        {errors.categorias && <p className="text-red-500 text-xs mt-1">{errors.categorias}</p>}
+                    </div>
+
+
 
                     {/* PIE DE FORMULARIO: BOTONES */}
                     <div className="flex justify-end gap-4 p-6 bg-neutral-100 dark:bg-neutral-800/40 rounded-2xl">
@@ -621,7 +689,7 @@ export default function Edit({ hotel, propietarios, servicios, tipos_habitacion 
                                             {tipo.tipo_habitacion}
                                         </h4>
                                         <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-                                            Precio base: <span className="text-teal-600 dark:text-teal-400 font-bold">{tipo.precio}€</span>
+                                            Precio base: <span className="text-teal-600 dark:text-teal-400 font-bold">{tipo.precio_base}€</span>
                                             <span className="mx-2 text-neutral-300 dark:text-neutral-700">|</span> 
                                             Habitaciones operativas: <span className="bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-400 font-bold px-2 py-0.5 rounded-md text-[11px]">{tipo.habitaciones_count}</span>
                                         </p>

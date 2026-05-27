@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react';
 import { Hotel } from '@/types';
-import { router } from '@inertiajs/react'; // Importante importar esto
+import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
     hotel: Hotel;
-    // NUEVO: Añadimos la prop de la oferta
     oferta_aplicada?: {
         id: number;
         nombre: string;
@@ -21,22 +20,21 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
     const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([]);
     const today = new Date().toISOString().split('T')[0];
 
-
     const handleReserva = () => {
-    router.post('/reservas', {
-        hotel_id: hotel.id,
-        fecha_entrada: checkIn,
-        fecha_salida: checkOut,
-        adultos: adults,
-        ninos: children, 
-        habitaciones: selectedRoomIds, 
-        oferta_id: oferta_aplicada?.id || null 
-    }, {
-        onSuccess: () => {
-            setSelectedRoomIds([]);
-        }
-    });
-};
+        router.post('/reservas', {
+            hotel_id: hotel.id,
+            fecha_entrada: checkIn,
+            fecha_salida: checkOut,
+            adultos: adults,
+            ninos: children, 
+            habitaciones: selectedRoomIds, 
+            oferta_id: oferta_aplicada?.id || null 
+        }, {
+            onSuccess: () => {
+                setSelectedRoomIds([]);
+            }
+        });
+    };
 
     const nights = useMemo(() => {
         if (!checkIn || !checkOut) return 0;
@@ -55,11 +53,35 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
     const totalGuests = adults + children;
     const isOverCapacity = totalGuests > totalCapacity && selectedRoomIds.length > 0;
 
-    const toggleRoom = (id: number) => {
-        if (nights === 0) return; 
-        setSelectedRoomIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    // AGRUPAMOS LAS HABITACIONES POR TIPO
+    const groupedRooms = useMemo(() => {
+        const groups: Record<string, { tipo: any, roomIds: number[] }> = {};
+        hotel.habitaciones.forEach(h => {
+            const key = h.tipo.tipo_habitacion;
+            if (!groups[key]) {
+                groups[key] = { tipo: h.tipo, roomIds: [] };
+            }
+            groups[key].roomIds.push(h.id);
+        });
+        return Object.values(groups);
+    }, [hotel.habitaciones]);
+
+    // FUNCIONES PARA AÑADIR Y QUITAR HABITACIONES POR GRUPO
+    const addRoom = (roomIds: number[]) => {
+        if (nights === 0) return;
+        const availableId = roomIds.find(id => !selectedRoomIds.includes(id));
+        if (availableId !== undefined) {
+            setSelectedRoomIds(prev => [...prev, availableId]);
+        }
     };
 
+    const removeRoom = (roomIds: number[]) => {
+        if (nights === 0) return;
+        const selectedId = roomIds.find(id => selectedRoomIds.includes(id));
+        if (selectedId !== undefined) {
+            setSelectedRoomIds(prev => prev.filter(id => id !== selectedId));
+        }
+    };
 
     const { totals, savings } = useMemo(() => {
         const selectedRooms = hotel.habitaciones.filter(h => selectedRoomIds.includes(h.id));
@@ -83,7 +105,6 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
         <div style={cardStyle}>
             <h3 style={{ fontSize: '1.4rem', marginBottom: '20px', color: '#333' }}>Calcula tu estancia</h3>
             
-     
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                 <div style={inputContainerStyle}>
                     <label style={miniLabelStyle}>📅 Entrada</label>
@@ -128,41 +149,66 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
                 </div>
             </div>
 
-            {/* LISTADO DE HABITACIONES ACTUALIZADO */}
             <div style={{ marginBottom: '20px' }}>
                 <p style={{ fontSize: '0.9rem', color: nights === 0 ? '#ff4d4d' : '#666', marginBottom: '10px' }}>
                     {nights === 0 ? 'Selecciona fechas para habilitar' : 'Selecciona habitaciones:'}
                 </p>
                 
-                {hotel.habitaciones.map((h) => {
-                    const originalPrice = Number(h.tipo.precio_base);
+                {groupedRooms.map((group) => {
+                    const { tipo, roomIds } = group;
+                    const selectedCount = roomIds.filter(id => selectedRoomIds.includes(id)).length;
+                    const availableCount = roomIds.length;
+
+                    const originalPrice = Number(tipo.precio_base);
                     const discountedPrice = oferta_aplicada 
                         ? originalPrice * (1 - oferta_aplicada.descuento_porcentaje / 100) 
                         : originalPrice;
 
                     return (
                         <div 
-                            key={h.id} 
-                            onClick={() => toggleRoom(h.id)}
+                            key={tipo.tipo_habitacion} 
                             style={{
                                 ...roomOptionStyle,
                                 opacity: nights === 0 ? 0.5 : 1,
-                                backgroundColor: selectedRoomIds.includes(h.id) ? '#e6f4f4' : '#fff',
-                                borderColor: selectedRoomIds.includes(h.id) ? '#008080' : '#ddd'
+                                borderColor: selectedCount > 0 ? '#008080' : '#ddd',
+                                backgroundColor: selectedCount > 0 ? '#f4fbfb' : '#fff',
                             }}
                         >
                             <div>
-                                <div style={{ fontWeight: '600' }}>{h.tipo.tipo_habitacion}</div>
-                                <div style={{ fontSize: '0.75rem', color: '#777' }}>Capacidad: {h.tipo.capacidad} pers.</div>
+                                <div style={{ fontWeight: '600' }}>{tipo.tipo_habitacion}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#777' }}>Capacidad: {tipo.capacidad} pers.</div>
+                                <div style={{ fontSize: '0.75rem', color: '#008080', marginTop: '2px' }}>
+                                    {availableCount} disponibles
+                                </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                {oferta_aplicada && (
-                                    <div style={{ fontSize: '0.8rem', color: '#999', textDecoration: 'line-through' }}>
-                                        {originalPrice.toFixed(2)}€
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <div style={{ textAlign: 'right' }}>
+                                    {oferta_aplicada && (
+                                        <div style={{ fontSize: '0.8rem', color: '#999', textDecoration: 'line-through' }}>
+                                            {originalPrice.toFixed(2)}€
+                                        </div>
+                                    )}
+                                    <div style={{ fontWeight: 'bold', color: oferta_aplicada ? '#c53030' : '#333' }}>
+                                        {discountedPrice.toFixed(2)}€
                                     </div>
-                                )}
-                                <div style={{ fontWeight: 'bold', color: oferta_aplicada ? '#c53030' : '#333' }}>
-                                    {discountedPrice.toFixed(2)}€
+                                </div>
+
+                                {/* Controles de cantidad integrados */}
+                                <div style={qtyContainerStyle}>
+                                    <button 
+                                        onClick={() => removeRoom(roomIds)} 
+                                        disabled={selectedCount === 0 || nights === 0}
+                                        style={{...qtyButtonStyle, opacity: selectedCount === 0 ? 0.5 : 1}}
+                                    >−</button>
+                                    <span style={{ width: '20px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                                        {selectedCount}
+                                    </span>
+                                    <button 
+                                        onClick={() => addRoom(roomIds)} 
+                                        disabled={selectedCount >= availableCount || nights === 0}
+                                        style={{...qtyButtonStyle, opacity: selectedCount >= availableCount ? 0.5 : 1}}
+                                    >+</button>
                                 </div>
                             </div>
                         </div>
@@ -175,7 +221,6 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
                     </div>
                 )}
             </div>
-
 
             <div style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
                 <div style={{ marginBottom: '10px' }}>
@@ -210,7 +255,23 @@ export default function PricingSection({ hotel, oferta_aplicada }: Props) {
 const cardStyle = { backgroundColor: '#ffffff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid #e0e0e0' };
 const inputContainerStyle = { display: 'flex', flexDirection: 'column' as const, gap: '5px' };
 const miniLabelStyle = { fontSize: '0.8rem', color: '#555', fontWeight: '600' };
-const inputStyle = { padding: '10px', borderRadius: '6px', border: '1px solid #ccc', width: '100%', fontSize: '0.9rem' };
-const roomOptionStyle = { padding: '12px', border: '1px solid', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: '0.3s' };
+const inputStyle = { padding: '10px', borderRadius: '6px', border: '1px solid #ccc', width: '100%', fontSize: '0.9rem', boxSizing: 'border-box' as const };
+
+const roomOptionStyle = { 
+    padding: '12px', 
+    border: '1px solid', 
+    borderRadius: '8px', 
+    marginBottom: '8px', 
+    display: 'flex', 
+    flexWrap: 'wrap' as const, 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    gap: '10px',
+    transition: '0.3s' 
+};
+
+const qtyContainerStyle = { display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '6px' };
+const qtyButtonStyle = { width: '26px', height: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '1.2rem', color: '#333', lineHeight: '1' };
+
 const buttonStyle = { width: '100%', backgroundColor: '#008080', color: 'white', padding: '14px', borderRadius: '8px', border: 'none', marginTop: '10px', fontSize: '1rem', fontWeight: 'bold', transition: '0.2s' };
 const errorBannerStyle = { backgroundColor: '#fce8e6', color: '#d93025', padding: '10px', borderRadius: '6px', fontSize: '0.85rem', marginTop: '10px', border: '1px solid #f1c4c0', fontWeight: '500' };

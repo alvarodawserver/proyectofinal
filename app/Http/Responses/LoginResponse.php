@@ -3,6 +3,7 @@
 namespace App\Http\Responses;
 
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Inertia\Inertia; 
 
 class LoginResponse implements LoginResponseContract
 {
@@ -14,10 +15,20 @@ class LoginResponse implements LoginResponseContract
     {
         $user = $request->user();
 
+       
         if ($user->hasRole('admin')) {
-            return redirect()->intended('/dashboard');
+            session()->flash('success', '¡Bienvenido al panel, Administrador!');
+            return Inertia::location('/dashboard');
         }
 
-        return redirect('/');
+       
+        if ($user->hasRole('propietario')) {
+            session()->flash('success', '¡Bienvenido de nuevo a tu gestión!');
+            return Inertia::location('/hoteles');
+        }
+
+       
+        session()->flash('success', '¡Sesión iniciada con éxito! Bienvenido, ' . $user->name);
+        return Inertia::location('/');
     }
 }

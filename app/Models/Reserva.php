@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Reserva extends Model
 {
@@ -33,5 +34,15 @@ class Reserva extends Model
     public function review()
     {
         return $this->hasOne(Review::class, 'reserva_id');
+    }
+
+    public function getFechaEntradaFormateadaAttribute()
+    {
+        return $this->fecha_entrada ? Carbon::parse($this->fecha_entrada)->format('d-m-Y') : null;
+    }
+
+    public function getFechaSalidaFormateadaAttribute()
+    {
+        return $this->fecha_salida ? Carbon::parse($this->fecha_salida)->format('d-m-Y') : null;
     }
 }

@@ -19,6 +19,7 @@ export default function LoginForm({ onSwitchToRegister, canResetPassword }: any)
             <Form {...store.form()} resetOnSuccess={['password']} className="space-y-4">
                 {({ processing, errors }) => (
                     <>
+                        {/* CORREO ELECTRÓNICO */}
                         <div className="space-y-2 text-left">
                             <Label htmlFor="email" className="text-slate-900 font-bold">Correo Electrónico</Label>
                             <Input 
@@ -32,6 +33,7 @@ export default function LoginForm({ onSwitchToRegister, canResetPassword }: any)
                             <InputError message={errors.email} />
                         </div>
 
+                        {/* CONTRASEÑA */}
                         <div className="space-y-2 text-left">
                             <div className="flex justify-between items-center">
                                 <Label htmlFor="password" className="text-slate-900 font-bold">Contraseña</Label>
@@ -50,13 +52,14 @@ export default function LoginForm({ onSwitchToRegister, canResetPassword }: any)
                                 type="password" 
                                 name="password" 
                                 required 
-                                placeholder="Tu contraseña secreta"
+                                minLength={8} 
+                                placeholder="Tu contraseña"
                                 className="rounded-xl border-gray-300 text-slate-900 placeholder:text-gray-400 focus:border-[#008080] focus:ring-[#008080]" 
                             />
                             <InputError message={errors.password} />
                         </div>
 
-                        {/* Checkbox con texto visible */}
+                        {/* RECODRARME */}
                         <div className="flex items-center space-x-2 py-2">
                             <Checkbox id="remember" name="remember" className="border-gray-400" />
                             <Label htmlFor="remember" className="text-sm text-slate-700 cursor-pointer">Recordarme en este equipo</Label>

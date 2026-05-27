@@ -209,15 +209,20 @@ export default function ReviewsSection({ hotelId, reviews = [], eligida_reserva_
 
 const formBoxStyle = { backgroundColor: '#f0f7f7', padding: '20px', borderRadius: '16px', border: '1px solid #b3d9d9' };
 const labelStyle = { display: 'block', fontSize: '0.85rem', fontWeight: 'bold' as const, marginBottom: '5px', color: '#555' };
-const textareaStyle = { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ccc', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'vertical' as const };
-const submitButtonStyle = { alignSelf: 'flex-start', backgroundColor: '#008080', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer' };
-const reviewCardStyle = { backgroundColor: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' };
+const textareaStyle = { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #ccc', fontSize: '0.9rem', fontFamily: 'inherit', resize: 'vertical' as const, boxSizing: 'border-box' as const };
 
-const noCommentsBoxStyle = {
-    backgroundColor: '#fffcf5',
-    padding: '30px 20px',
-    borderRadius: '16px',
-    border: '1px dashed #D2B48C',
-    textAlign: 'center' as const,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.01)'
+const submitButtonStyle = { 
+    display: 'block',
+    width: 'auto',
+    minWidth: '150px',
+    backgroundColor: '#008080', 
+    color: 'white', 
+    padding: '10px 20px', 
+    borderRadius: '8px', 
+    fontWeight: 'bold', 
+    border: 'none', 
+    cursor: 'pointer' 
 };
+
+const reviewCardStyle = { backgroundColor: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #eee', boxShadow: '0 2px 6px rgba(0,0,0,0.01)' };
+const noCommentsBoxStyle = { backgroundColor: '#fffcf5', padding: '30px 20px', borderRadius: '16px', border: '1px dashed #D2B48C', textAlign: 'center' as const, boxShadow: '0 2px 8px rgba(0,0,0,0.01)' };

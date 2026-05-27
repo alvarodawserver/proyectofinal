@@ -17,7 +17,6 @@ class Hotele extends Model
         'direccion',
         'estado',
         'ciudad',
-        'categoria',
         'latitud',
         'longitud'
     ];
@@ -72,7 +71,7 @@ class Hotele extends Model
     public function categorias(): BelongsToMany
     {
         return $this->belongsToMany(Categoria::class, 'categoria_hotel', 'hotele_id', 'categoria_id')
-                    ->withTimestamps(); // Si tu pivote tiene created_at y updated_at
+                    ->withTimestamps(); 
     }
 
 

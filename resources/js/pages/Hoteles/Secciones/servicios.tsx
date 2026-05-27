@@ -22,5 +22,25 @@ export default function ServicesSection({ servicios }: Props) {
 }
 
 
-const serviciosGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '15px', marginTop: '20px' };
-const servicioCardStyle = { backgroundColor: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #D2B48C', display: 'flex', flexDirection: 'column' as const, alignItems: 'center' as const, gap: '10px', fontSize: '0.9rem', color: '#008080', fontWeight: 'bold', textAlign: 'center' as const, boxShadow: '0 4px 10px rgba(0,0,0,0.05)' };
+const serviciosGridStyle = { 
+    display: 'grid', 
+    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
+    gap: '15px', 
+    marginTop: '20px' 
+};
+
+const servicioCardStyle = { 
+    backgroundColor: 'white', 
+    padding: '15px', 
+    borderRadius: '12px', 
+    border: '1px solid #D2B48C', 
+    display: 'flex', 
+    flexDirection: 'column' as const, 
+    alignItems: 'center' as const, 
+    gap: '10px', 
+    fontSize: '0.85rem', 
+    color: '#008080', 
+    fontWeight: 'bold', 
+    textAlign: 'center' as const, 
+    boxShadow: '0 4px 10px rgba(0,0,0,0.05)' 
+};

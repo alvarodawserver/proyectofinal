@@ -18,7 +18,6 @@ return new class extends Migration
             $table->text('descripcion');
             $table->string('direccion');
             $table->string('ciudad');
-            $table->string('categoria');
             $table->decimal('latitud',10,8);
             $table->decimal('longitud',11,8);
             $table->timestamps();

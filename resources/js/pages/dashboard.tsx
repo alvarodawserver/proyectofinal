@@ -63,6 +63,16 @@ export default function Dashboard() {
             desc: 'Gestionar usuarios y permisos del sistema',
             roles: ['admin'] // Solo accesible por el Súper Admin
         },
+
+        { 
+            name: 'Categorias', 
+            icon: CalendarDays, 
+            href: '/categorias', 
+            color: 'text-orange-600', 
+            bg: 'bg-orange-50', 
+            desc: 'Gestionar categorías de productos o servicios',
+            roles: ['admin'] // Solo accesible por el Súper Admin
+        },
     ];
 
     // 3. Filtramos los módulos para mostrar solo los permitidos para el rol actual

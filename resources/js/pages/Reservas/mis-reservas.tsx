@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head,Link,router} from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { Calendar, MapPin, CreditCard, CheckCircle, XCircle } from 'lucide-react';
@@ -10,12 +10,12 @@ interface Props {
 }
 
 export default function MisReservas({ reservas, errors }: Props) {
-   const handleCancelar = (id: number) => {
+    const handleCancelar = (id: number) => {
         if (confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {    
             router.post(`/reservas/cancelar/${id}`, {}, {
                 onSuccess: () => {
-                alert("Tu solicitud de cancelación se ha procesado correctamente.");
-            },
+                    alert("Tu solicitud de cancelación se ha procesado correctamente.");
+                },
                 onError: (errors) => {
                     alert("Hubo un error al cancelar");
                     console.error(errors);
@@ -23,12 +23,14 @@ export default function MisReservas({ reservas, errors }: Props) {
             });
         }
     };
+
     React.useEffect(() => {
         if (errors && errors.error) {
             alert("Error de Stripe: " + errors.error);
         }
     }, [errors]);
 
+    const currentDate = new Date().toISOString().split('T')[0];
 
     return (
         <div className="min-h-screen flex flex-col bg-[#f9f9f9]">
@@ -80,7 +82,7 @@ export default function MisReservas({ reservas, errors }: Props) {
                                         <div className="flex flex-wrap gap-4 mt-4 text-sm text-gray-600">
                                             <div className="flex items-center gap-2">
                                                 <Calendar size={16} className="text-[#008080]" />
-                                                <span><strong>{reserva.fecha_entrada}</strong> — <strong>{reserva.fecha_salida}</strong></span>
+                                                <span><strong>{reserva.fecha_entrada_formateada}</strong> — <strong>{reserva.fecha_salida_formateada}</strong></span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <MapPin size={16} className="text-[#008080]" />
@@ -95,13 +97,27 @@ export default function MisReservas({ reservas, errors }: Props) {
                                             <p className="text-2xl font-black text-gray-800">{parseFloat(reserva.precio_total).toFixed(2)}€</p>
                                         </div>
                                         
-                                        <div className="flex gap-2">
-                                            <a href={`/reservas/${reserva.id}/descargar-factura`} 
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                                                Descargar Factura
+                                        <div className="flex flex-wrap justify-end gap-2">
+                                            <a 
+                                                href={`/reservas/${reserva.id}/descargar-qr`} 
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="px-4 py-2 text-xs font-bold text-[#008080] bg-[#e6f2f2] rounded-lg hover:bg-[#cce5e5] transition-colors"
+                                            >
+                                                Descargar QR
                                             </a>
+
+                                            {currentDate >= reserva.fecha_salida && (
+                                                <a 
+                                                    href={`/reservas/${reserva.id}/descargar-factura`} 
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="px-4 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                                >
+                                                    Descargar Factura
+                                                </a>
+                                            )}
+
                                             {reserva.estado === 'pagada' && (
                                                 <button 
                                                     className="px-4 py-2 text-xs font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"

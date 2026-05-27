@@ -5,7 +5,6 @@ export default function CookieBanner() {
     const [mostrarBanner, setMostrarBanner] = useState(false);
 
     useEffect(() => {
-        // Comprobamos si el usuario ya tomó una decisión antes
         const consentimiento = Cookies.get('cookie_consent');
         if (!consentimiento) {
             setMostrarBanner(true);
@@ -13,16 +12,14 @@ export default function CookieBanner() {
     }, []);
 
     const aceptarCookies = () => {
-        // Guardamos la cookie por 365 días
-        Cookies.set('cookie_consent', 'accepted', { expires: 365, secure: true });
+        Cookies.set('cookie_consent', 'accepted', { expires: 365, secure: false, sameSite: 'lax' });
         setMostrarBanner(false);
         
-        // Aquí podrías activar cookies de terceros o guardar la ubicación si quisieras
         guardarUbicacionInicial();
     };
 
     const rechazarCookies = () => {
-        Cookies.set('cookie_consent', 'rejected', { expires: 365, secure: true });
+        Cookies.set('cookie_consent', 'rejected', { expires: 365, secure: false, sameSite: 'lax' });
         setMostrarBanner(false);
     };
 
@@ -30,9 +27,8 @@ export default function CookieBanner() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
                 const { latitude, longitude } = position.coords;
-                // Guardamos la ubicación en cookies para usarla en las búsquedas
-                Cookies.set('user_lat', String(latitude), { expires: 7 });
-                Cookies.set('user_lng', String(longitude), { expires: 7 });
+                Cookies.set('user_lat', String(latitude), { expires: 7, secure: false, sameSite: 'lax' });
+                Cookies.set('user_lng', String(longitude), { expires: 7, secure: false, sameSite: 'lax' });
             });
         }
     };
@@ -43,7 +39,7 @@ export default function CookieBanner() {
         <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 shadow-xl z-50 flex flex-col md:flex-row items-center justify-between border-t border-gray-700 animate-bounce-short">
             <div className="text-sm max-w-4xl mb-4 md:mb-0">
                 <p>
-                    Utilizamos cookies propias para mejorar tu experiencia de usuario, recordar tus preferencias de búsqueda (como tu última ciudad y fechas) y mostrarte hoteles cercanos. Puedes aceptarlas todas o configurarlas.
+                    Utilizamos cookies propias para mejorar tu experiencia de usuario, recordar tus preferencias de búsqueda (como tu última ciudad y fechas) y mostrarte hoteles cercanos.
                 </p>
             </div>
             <div className="flex space-x-4 shrink-0">

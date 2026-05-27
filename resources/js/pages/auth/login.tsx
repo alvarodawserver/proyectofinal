@@ -15,12 +15,14 @@ type Props = {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
+    onClose?: () => void;
 };
 
 export default function Login({
     status,
     canResetPassword,
     canRegister,
+    onClose, 
 }: Props) {
     return (
         <AuthLayout
@@ -32,8 +34,12 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                onSuccess={() => {
+                    if (onClose) onClose(); 
+                }}
                 className="flex flex-col gap-6"
             >
+                
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">

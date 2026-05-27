@@ -9,7 +9,11 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-export default function Register() {
+type RegisterProps = {
+    onClose?: () => void; 
+};
+
+export default function Register({ onClose }: RegisterProps) { 
     return (
         <AuthLayout
             title="Únete al paraíso"
@@ -20,8 +24,12 @@ export default function Register() {
                 {...store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
+                onSuccess={() => {
+                    if (onClose) onClose(); 
+                }}
                 className="flex flex-col gap-6"
             >
+               
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">

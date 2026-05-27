@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Categoria;
 use App\Models\Habitacione;
 use App\Models\Hotele;
 use App\Models\Oferta;
@@ -137,45 +138,60 @@ class HoteleController extends Controller
      * Show the form for editing the specified resource.
      */
     public function edit(Hotele $hotele)
-    {
-        $propietarios = User::role('propietario')->get(['id', 'name']);
-        
-        // APLICADO: Filtro de codificación para el listado general de servicios
-        $servicios = Servicio::all(['id', 'nombre_servicio'])->map(function ($servicio) {
-            return [
-                'id' => $servicio->id,
-                'nombre_servicio' => mb_check_encoding($servicio->nombre_servicio, 'UTF-8')
-                    ? $servicio->nombre_servicio
-                    : mb_convert_encoding($servicio->nombre_servicio, 'UTF-8', 'ISO-8859-1'),
-            ];
-        });
+{
+    $propietarios = User::role('propietario')->get(['id', 'name']);
 
-        $hotele->load('servicios'); 
-        
-        // APLICADO: Por si en la vista de Vue/Inertia usas también los nombres del hotel cargado
-        $hotele->servicios->transform(function ($srv) {
-            $srv->nombre_servicio = mb_check_encoding($srv->nombre_servicio, 'UTF-8')
-                ? $srv->nombre_servicio
-                : mb_convert_encoding($srv->nombre_servicio, 'UTF-8', 'ISO-8859-1');
-            return $srv;
-        });
+    $categorias = Categoria::all(['id', 'nombre'])->map(function ($categoria) {
+        return [
+            'id' => $categoria->id,
+            'nombre' => mb_check_encoding($categoria->nombre, 'UTF-8')
+                ? $categoria->nombre
+                : mb_convert_encoding($categoria->nombre, 'UTF-8', 'ISO-8859-1'),
+        ];
+    });
+    
 
-        $hotele->servicios_ids = $hotele->servicios->pluck('id');
-        $tiposHabitacion = Tipo::withCount(['habitaciones' => function ($query) use ($hotele) {
-            $query->where('hotele_id', $hotele->id);
-        }])->get(['id', 'tipo_habitacion', 'precio']);
-        
-        $hotele->imagen_url = $hotele->imagen_principal 
-            ? asset('storage/' . $hotele->imagen_principal) 
-            : null;
+    $servicios = Servicio::all(['id', 'nombre_servicio'])->map(function ($servicio) {
+        return [
+            'id' => $servicio->id,
+            'nombre_servicio' => mb_check_encoding($servicio->nombre_servicio, 'UTF-8')
+                ? $servicio->nombre_servicio
+                : mb_convert_encoding($servicio->nombre_servicio, 'UTF-8', 'ISO-8859-1'),
+        ];
+    });
 
-        return Inertia::render('Hoteles/Admin/edit', [
-            'hotel' => $hotele,
-            'propietarios' => $propietarios,
-            'servicios' => $servicios,
-            'tipos_habitacion' => $tiposHabitacion
-        ]);
-    }
+
+    $hotele->load(['servicios', 'categorias']); 
+    
+  
+    $hotele->servicios->transform(function ($srv) {
+        $srv->nombre_servicio = mb_check_encoding($srv->nombre_servicio, 'UTF-8')
+            ? $srv->nombre_servicio
+            : mb_convert_encoding($srv->nombre_servicio, 'UTF-8', 'ISO-8859-1');
+        return $srv;
+    });
+
+    $hotele->servicios_ids = $hotele->servicios->pluck('id');
+    
+    
+    $hotele->categorias_ids = $hotele->categorias->pluck('id');
+
+    $tiposHabitacion = Tipo::withCount(['habitaciones' => function ($query) use ($hotele) {
+        $query->where('hotele_id', $hotele->id);
+    }])->get(['id', 'tipo_habitacion', 'precio_base']);
+    
+    $hotele->imagen_url = $hotele->imagen_principal 
+        ? asset('storage/' . $hotele->imagen_principal) 
+        : null;
+
+    return Inertia::render('Hoteles/Admin/edit', [
+        'hotel' => $hotele,
+        'propietarios' => $propietarios,
+        'servicios' => $servicios,
+        'categorias' => $categorias,
+        'tipos_habitacion' => $tiposHabitacion
+    ]);
+}
 
     /**
      * Update the specified resource in storage.
@@ -255,8 +271,7 @@ class HoteleController extends Controller
 
     public function generarHabitacionesMasa(Request $request)
     {
-        // Validación de rol
-        if (!auth()->user()->hasRole('admin') && auth()->user()->role !== 'admin') {
+        if (!auth()->user()->hasRole('propietario') && !auth()->user()->hasRole('admin')) {
             abort(403, 'No autorizado.');
         }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Categoria;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class CategoriaController extends Controller
 {
@@ -12,15 +13,12 @@ class CategoriaController extends Controller
      */
     public function index()
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        // Traemos todas las categorías ordenadas alfabéticamente
+        $categorias = Categoria::orderBy('nombre', 'asc')->get();
+        
+        return Inertia::render('Categorias/index', [
+            'categorias' => $categorias
+        ]);
     }
 
     /**
@@ -28,31 +26,16 @@ class CategoriaController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
+        // Validamos que el nombre venga y sea único
+        $request->validate([
+            'nombre' => 'required|string|max:255|unique:categorias,nombre'
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Categoria $categoria)
-    {
-        //
-    }
+        Categoria::create([
+            'nombre' => $request->nombre
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Categoria $categoria)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Categoria $categoria)
-    {
-        //
+        return redirect()->back()->with('success', 'Categoría creada con éxito.');
     }
 
     /**
@@ -60,6 +43,8 @@ class CategoriaController extends Controller
      */
     public function destroy(Categoria $categoria)
     {
-        //
+        $categoria->delete();
+
+        return redirect()->back()->with('success', 'Categoría eliminada.');
     }
 }

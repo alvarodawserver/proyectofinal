@@ -26,3 +26,13 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+copia_nueva_final.sql
+.gitignore
+.dockerignore
+copia_nueva_final.sql
+docker-compose.yml
+docker-entrypoint.sh
+vite.config.ts
+apache/refugiodelmar.conf
+Dockerfile
+bind9/config/named.conf

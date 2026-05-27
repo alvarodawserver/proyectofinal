@@ -82,7 +82,14 @@ export default function GeneralSection({ hotel, images, rating, review_destacada
                 <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #D2B48C', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <MapPin style={{ color: '#008080' }} size={24} />
                     <div style={{ color: '#008080', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Ver en el mapa
+                        <a 
+                                href={`https://www.google.com/maps/search/?api=1&query=${hotel.latitud},${hotel.longitud}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={mapsLinkStyle}
+                            >
+                                Ver en Google Maps 🗺️
+                            </a>
                     </div>
                 </div>
             </div>
@@ -90,12 +97,17 @@ export default function GeneralSection({ hotel, images, rating, review_destacada
     );
 }
 
-// Estilos limpios de la sección general
-const mosaicoStyle = { display: 'flex', gap: '5px', flexWrap: 'wrap' as const, overflow: 'hidden', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' };
-const imgPrincipalStyle = { flex: '1 1 500px', height: '400px', objectFit: 'cover' as const, transition: 'all 0.2s ease-in-out' };
-const imgSecundariaStyle = { height: '197.5px', width: '100%', objectFit: 'cover' as const, transition: 'opacity 0.2s' };
-const thumbnailsStyle = { display: 'flex', gap: '5px', marginTop: '5px', width: '100%', flexWrap: 'wrap' as const };
-const imgThumbStyle = { flex: '1 1 100px', height: '100px', objectFit: 'cover' as const, borderRadius: '4px', cursor: 'pointer', transition: 'all 0.2s' };
-const verMasFotosStyle = { ...imgThumbStyle, backgroundColor: '#8B4513', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' as const, cursor: 'pointer' };
 
-const mapBoxStyle = { backgroundColor: 'white', padding: '15px', borderRadius: '12px', border: '1px solid #D2B48C', marginTop: '15px', display: 'flex', alignItems: 'center', gap: '10px' };
+const mapsLinkStyle = {
+    fontSize: '0.85rem',
+    color: '#008080',
+    backgroundColor: '#e6f2f2',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    textDecoration: 'none',
+    fontWeight: 'bold',
+    display: 'inline-flex',
+    alignItems: 'center',
+    transition: 'background-color 0.2s',
+    border: '1px solid #cce5e5'
+};

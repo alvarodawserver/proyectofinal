@@ -99,7 +99,9 @@ export default function Show({ hotel, rating, images, servicios, oferta_aplicada
                 <div style={headerStyle}>
                     <div style={{ flex: 1 }}>
                         <h1 style={titleStyle}>{hotel.nombre_hotel}</h1>
-                        <p>📍 {hotel.direccion}, {hotel.ciudad}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '5px' }}>
+                            <p style={{ margin: 0 }}>📍 {hotel.direccion}, {hotel.ciudad}</p>
+                        </div>
                     </div>
                     <Button
                         style={reservaButtonStyle}
@@ -197,3 +199,4 @@ const tabsBarStyle = { display: 'flex', gap: '2px', borderBottom: '1px solid #cc
 const headerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' };
 const titleStyle = { margin: '0 0 5px 0', fontSize: '1.8rem', fontWeight: 'bold', color: '#8B4513' };
 const reservaButtonStyle = { backgroundColor: '#008080', color: 'white', padding: '12px 25px', borderRadius: '8px' };
+
